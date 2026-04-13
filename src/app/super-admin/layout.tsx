@@ -9,8 +9,11 @@ export default function SuperAdminLayout({
 }) {
   return (
     <ProtectedRoute allowedRoles={["super_admin_global"]}>
-      <div className="flex min-h-screen w-full bg-neutral-50 text-neutral-900">
-        <Sidebar />
+      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-black">
+        {/* Usamos el mismo Sidebar por ahora, pero validaremos rutas o podemos hacer uno específico */}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />

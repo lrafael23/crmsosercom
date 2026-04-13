@@ -9,8 +9,11 @@ export default function AdminLayout({
 }) {
   return (
     <ProtectedRoute allowedRoles={["super_admin_global", "admin_interno", "abogado", "contador", "tributario", "staff"]}>
-      <div className="flex min-h-screen w-full bg-neutral-50 text-neutral-900">
-        <Sidebar />
+      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-black">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
