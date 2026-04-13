@@ -7,7 +7,7 @@ export async function logAuditAction(
   actionType: "LOGIN" | "CREATE" | "UPDATE" | "DELETE" | "IMPERSONATE",
   entityType: string,
   entityId: string,
-  details: any
+  details: Record<string, unknown>
 ) {
   if (!user) return;
 

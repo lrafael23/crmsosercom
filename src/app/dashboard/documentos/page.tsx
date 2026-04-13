@@ -14,7 +14,7 @@ interface Document {
   title: string;
   category: string;
   status: string;
-  createdAt: any;
+  createdAt?: unknown;
 }
 
 export default function ClientDocumentsPage() {
@@ -23,20 +23,16 @@ export default function ClientDocumentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || user.role === 'super_admin_global' || user.role === 'admin_interno' || user.role === 'staff') {
-        // En MVP, simplificamos y si es staff mostramos algo genérico.
-        // Lo ideal es que staff y admins no vean el dashboard del cliente directo,
-        // o lo vean con companyId pasado como parametro, pero simularemos que la vista
-        // de documentos carga todo si no hay companyId ligado.
-        setLoading(false);
-        return;
+    if (!user || user.role !== 'cliente') {
+      setLoading(false);
+      return;
     }
 
     const fetchDocs = async () => {
       try {
         if (!user.companyId) {
-            setLoading(false);
-            return;
+          setLoading(false);
+          return;
         }
 
         const q = query(collection(db, "documents"), where("companyId", "==", user.companyId));

@@ -1,9 +1,132 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Reglas simples MVP temporal: Permitir acceso autenticado a usuarios internos y control cruzado con companyId para usuarios clientes
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUser() {
+      return currentUserDoc().data;
+    }
+
+    function isKnownUser() {
+      return isAuthenticated() && currentUserDoc().exists();
+    }
+
+    function isSuperAdmin() {
+      return isKnownUser() && currentUser().role == 'super_admin_global';
+    }
+
+    function isTenantAdmin() {
+      return isKnownUser() && currentUser().role == 'admin' && currentUser().status == 'active';
+    }
+
+    function isTenantTeamMember() {
+      return isKnownUser() && currentUser().role in ['admin', 'abogado', 'contador', 'tributario', 'staff'] && currentUser().status == 'active';
+    }
+
+    function isActiveClient() {
+      return isKnownUser() && currentUser().role == 'cliente' && currentUser().status == 'active';
+    }
+
+    function sameTenant(tenantId) {
+      return isKnownUser() && tenantId != null && currentUser().tenantId == tenantId;
+    }
+
+    function sameCompany(companyId) {
+      return isKnownUser() && companyId != null && currentUser().companyId == companyId;
+    }
+
+    function canReadUser(targetUser) {
+      return isSuperAdmin()
+        || request.auth.uid == targetUser.uid
+        || (isTenantTeamMember() && sameTenant(targetUser.tenantId));
+    }
+
+    function selfEditableFieldsUnchanged() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.validatedBy == resource.data.validatedBy
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email;
+    }
+
+    function isSafeTenantRole(role) {
+      return role in ['admin', 'abogado', 'contador', 'tributario', 'staff', 'cliente'];
+    }
+
+    function validTenantScopedUserCreate() {
+      return isTenantAdmin()
+        && sameTenant(request.resource.data.tenantId)
+        && isSafeTenantRole(request.resource.data.role)
+        && request.resource.data.role != 'super_admin_global'
+        && request.resource.data.status in ['pending_validation', 'active', 'suspended'];
+    }
+
+    function validTenantScopedUserUpdate() {
+      return isTenantAdmin()
+        && sameTenant(resource.data.tenantId)
+        && sameTenant(request.resource.data.tenantId)
+        && resource.data.role != 'super_admin_global'
+        && request.resource.data.role != 'super_admin_global'
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    match /users/{userId} {
+      allow read: if isKnownUser() && canReadUser(resource.data);
+
+      allow create: if isSuperAdmin()
+        || (isKnownUser() && request.resource.data.uid == userId && request.auth.uid == userId)
+        || validTenantScopedUserCreate();
+
+      allow update: if isSuperAdmin()
+        || (isKnownUser() && request.auth.uid == userId && selfEditableFieldsUnchanged())
+        || validTenantScopedUserUpdate();
+
+      allow delete: if isSuperAdmin()
+        || (isTenantAdmin() && sameTenant(resource.data.tenantId) && resource.data.role != 'super_admin_global');
+    }
+
+    match /companies/{companyId} {
+      allow read: if isSuperAdmin()
+        || (isTenantTeamMember() && sameTenant(resource.data.tenantId))
+        || (isActiveClient() && sameTenant(resource.data.tenantId) && sameCompany(companyId));
+
+      allow create, update, delete: if isSuperAdmin()
+        || (isTenantAdmin() && sameTenant(request.resource.data.tenantId));
+    }
+
+    match /documents/{documentId} {
+      allow read: if isSuperAdmin()
+        || (isTenantTeamMember() && sameTenant(resource.data.tenantId))
+        || (isActiveClient() && sameTenant(resource.data.tenantId) && sameCompany(resource.data.companyId));
+
+      allow create, update, delete: if isSuperAdmin()
+        || (isTenantTeamMember() && sameTenant(request.resource.data.tenantId));
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+
+      allow create: if isKnownUser()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userRole == currentUser().role
+        && request.resource.data.companyId == currentUser().companyId;
+
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSuperAdmin();
     }
   }
 }

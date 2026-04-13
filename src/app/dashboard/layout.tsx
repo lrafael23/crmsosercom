@@ -8,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["cliente"]}>
       <div className="flex min-h-screen w-full bg-slate-50 dark:bg-black">
         {/* Desktop Sidebar */}
         <div className="hidden md:block">

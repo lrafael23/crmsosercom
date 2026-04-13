@@ -8,7 +8,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute allowedRoles={["super_admin_global", "admin_interno", "abogado", "contador", "tributario", "staff"]}>
+    <ProtectedRoute allowedRoles={["super_admin_global", "admin", "abogado", "contador", "tributario", "staff"]}>
       <div className="flex min-h-screen w-full bg-slate-50 dark:bg-black">
         {/* Desktop Sidebar */}
         <div className="hidden md:block">

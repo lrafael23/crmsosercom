@@ -1,7 +1,3 @@
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const { getAuth } = require('firebase-admin/auth');
-
 // Note: To run this properly, you need the service account credentials or rely on Application Default Credentials
 // Since we are running in an environment without the actual service account JSON by default, 
 // we will export a placeholder setup instruction or just use a client-side mock if admin fails.

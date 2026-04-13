@@ -1,29 +1,46 @@
 "use client";
 
-import { useAuth } from "@/lib/auth/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 
-export function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
-  const { user, loading } = useAuth();
+import { canAccessRoute, getDefaultRouteForRole, UserRole, useAuth } from "@/lib/auth/AuthContext";
+
+import { ValidationGuard } from "./ValidationGuard";
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: UserRole[];
+}
+
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/login");
-      } else if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Handle unauthorized access
-        if (user.role === "cliente") {
-            router.push("/dashboard");
-        } else {
-            router.push("/admin/clientes"); // Default for admin/staff
-        }
-      }
+    if (loading) {
+      return;
     }
-  }, [user, loading, router, allowedRoles, pathname]);
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user.status !== "active") {
+      return;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      router.replace(getDefaultRouteForRole(user.role));
+      return;
+    }
+
+    if (!canAccessRoute(user.role, pathname)) {
+      router.replace(getDefaultRouteForRole(user.role));
+    }
+  }, [allowedRoles, loading, logout, pathname, router, user]);
 
   if (loading) {
     return (
@@ -34,7 +51,15 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   }
 
   if (!user) {
-    return null; // Will redirect in useEffect
+    return null;
+  }
+
+  if (user.status !== "active") {
+    return <ValidationGuard>{children}</ValidationGuard>;
+  }
+
+  if ((allowedRoles && !allowedRoles.includes(user.role)) || !canAccessRoute(user.role, pathname)) {
+    return null;
   }
 
   return <>{children}</>;
