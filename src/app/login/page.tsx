@@ -26,7 +26,7 @@ export default function LoginPage() {
       toast.success("Login exitoso");
       
       logAuditAction(
-        { uid: userCred.user.uid, role: 'cliente', companyId: null, email: userCred.user.email || '', displayName: "Usuario", department: undefined }, 
+        { uid: userCred.user.uid, role: 'cliente', companyId: null, email: userCred.user.email || '', displayName: "Usuario", department: null }, 
         "LOGIN", 
         "auth", 
         userCred.user.uid, 
