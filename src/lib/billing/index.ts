@@ -53,6 +53,7 @@ export interface TenantPlanUsage {
   activeCases: number;
   activeSeats: number;
   extraSeats: number;
+  monthlyConferences: number;
   updatedAt: unknown; // Firestore Timestamp
 }
 
@@ -95,6 +96,7 @@ export async function initTenantPlanUsage(tenantId: string, planId: PlanId): Pro
     activeCases: 0,
     activeSeats: 1, // El owner_firm cuenta como 1
     extraSeats: 0,
+    monthlyConferences: 0,
     updatedAt: serverTimestamp(),
   });
 }
@@ -132,6 +134,34 @@ export async function assertCanAddSeat(
     );
   }
   return { isExtra: result.isExtra, extraCostCLP: result.extraCostCLP };
+}
+
+/**
+ * Verifica si el tenant puede agregar una conferencia mensual más.
+ */
+export async function assertCanAddConference(tenantId: string): Promise<void> {
+  const usage = await getTenantPlanUsage(tenantId);
+  if (!usage) throw new Error("Tenant sin plan inicializado");
+
+  const plan = PLANS[usage.planId];
+  if (plan.maxMonthlyConferences === null) return; // Ilimitado
+
+  if (usage.monthlyConferences >= plan.maxMonthlyConferences) {
+    throw new Error(
+      `Límite de conferencias mensuales alcanzado (${plan.maxMonthlyConferences}). Sube de plan para permitir más agendamientos.`
+    );
+  }
+}
+
+/**
+ * Incrementa el contador de conferencias mensuales.
+ */
+export async function incrementMonthlyConferences(tenantId: string): Promise<void> {
+  const ref = doc(db, "tenant_plan_usage", tenantId);
+  await updateDoc(ref, {
+    monthlyConferences: increment(1),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /**

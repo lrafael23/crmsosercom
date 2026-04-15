@@ -17,6 +17,8 @@ export interface Plan {
   tagline: string;
   /** Límite de causas activas (null = ilimitado) */
   maxActiveCases: number | null;
+  /** Límite de conferencias mensuales incluidas (0MVP) */
+  maxMonthlyConferences: number | null;
   /** Asientos de usuarios internos incluidos */
   includedSeats: number;
   /** Si permite seats extra (solo Premium) */
@@ -34,6 +36,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceCLP: 10000,
     tagline: "Para abogados independientes o estudios muy pequeños",
     maxActiveCases: 10,
+    maxMonthlyConferences: 5,
     includedSeats: 2,
     allowExtraSeats: false,
     extraSeatPriceCLP: null,
@@ -55,6 +58,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceCLP: 35000,
     tagline: "Para estudios pequeños y medianos en crecimiento",
     maxActiveCases: 50,
+    maxMonthlyConferences: 25,
     includedSeats: 5,
     allowExtraSeats: false,
     extraSeatPriceCLP: null,
@@ -76,6 +80,7 @@ export const PLANS: Record<PlanId, Plan> = {
     priceCLP: 99000,
     tagline: "Para grandes estudios jurídicos sin límites operativos",
     maxActiveCases: null, // Ilimitado
+    maxMonthlyConferences: null, // Ilimitado
     includedSeats: 10,
     allowExtraSeats: true,
     extraSeatPriceCLP: 7000,

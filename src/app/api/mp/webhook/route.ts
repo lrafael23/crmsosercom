@@ -194,6 +194,23 @@ async function processPaymentEvent(paymentId: string, token: string | null) {
       createdAt: "SERVER_TIMESTAMP",
     }, token);
   }
+
+  // Confirmar Cita si es pago de consulta
+  if (payment.status === "approved" && metadata.type === "consultation" && metadata.appointmentId) {
+    await firestorePatch("appointments", metadata.appointmentId, {
+      status: "confirmed",
+      updatedAt: "SERVER_TIMESTAMP",
+      mpPaymentId: paymentId
+    }, token);
+
+    await firestoreAdd("audit_logs", {
+      action: "appointment_confirmed_payment",
+      entityType: "appointment",
+      entityId: metadata.appointmentId,
+      details: { mpPaymentId: paymentId },
+      createdAt: "SERVER_TIMESTAMP",
+    }, token);
+  }
 }
 
 async function processSubscriptionEvent(subscriptionId: string, token: string | null) {

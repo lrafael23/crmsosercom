@@ -135,9 +135,9 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-sm text-slate-500">
               ¿No tienes una cuenta?{" "}
-              <Button variant="link" className="text-emerald-600 p-0 font-semibold">
-                Contacta con tu administrador
-              </Button>
+              <Link href="/planes" className="text-emerald-600 font-bold hover:underline">
+                Regístrate aquí
+              </Link>
             </p>
           </div>
         </motion.div>

@@ -14,16 +14,18 @@ import {
   Loader2, 
   Star,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import LegalVault from "@/components/vault/LegalVault";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface ClientCase {
   id: string;
-  titulo: string;
-  tipo: string;
+  title: string;
+  type: string;
   status: CaseStage;
   asignadoA?: string;
   createdAt?: { seconds: number };
@@ -45,6 +47,7 @@ export default function ClientePortalPage() {
   const [appointments, setAppointments] = useState<ClientAppointment[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"timeline" | "vault">("timeline");
 
   // Cargar causas y citas del cliente
   useEffect(() => {
@@ -163,10 +166,10 @@ export default function ClientePortalPage() {
                   >
                     <div className="flex flex-col items-start min-w-0">
                       <p className={`text-xs font-black truncate w-full ${selectedCaseId === c.id ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                        {c.titulo}
+                        {c.title}
                       </p>
                       <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${selectedCaseId === c.id ? 'text-indigo-100/80' : 'text-slate-400'}`}>
-                        {c.tipo}
+                        {c.type}
                       </p>
                     </div>
                     <ChevronRight className={`w-4 h-4 transition-transform group-hover:translate-x-1 ${selectedCaseId === c.id ? 'opacity-100' : 'opacity-0'}`} />
@@ -210,37 +213,81 @@ export default function ClientePortalPage() {
           </section>
 
           {/* Acceso a Documentos */}
-           <section className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-6 shadow-xl shadow-indigo-500/20 group cursor-pointer hover:scale-[1.02] transition-all">
+           <section 
+            onClick={() => setActiveTab("vault")}
+            className={`group cursor-pointer hover:scale-[1.02] transition-all rounded-3xl p-6 shadow-xl ${
+              activeTab === "vault" 
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-indigo-500/20" 
+                : "bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-indigo-500/20"
+            }`}
+          >
              <div className="flex items-center justify-between mb-4">
-               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                 <FileText className="w-5 h-5 text-white" />
+               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center backdrop-blur-md ${
+                 activeTab === "vault" ? "bg-emerald-500 text-white" : "bg-white/20 text-white"
+               }`}>
+                 <FileText className="w-5 h-5" />
                </div>
                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                 <ChevronRight className="w-4 h-4 text-white" />
+                 <ChevronRight className="w-4 h-4" />
                </div>
              </div>
-             <h3 className="text-white font-black text-lg tracking-tight mb-1">Mis Documentos</h3>
-             <p className="text-indigo-100/70 text-[11px] font-medium leading-relaxed">
-               Accede a la bóveda digital con todos tus contratos y expedientes.
+             <h3 className="font-black text-lg tracking-tight mb-1">Mis Documentos</h3>
+             <p className={`text-[11px] font-medium leading-relaxed ${activeTab === "vault" ? "text-slate-400" : "text-indigo-100/70"}`}>
+               {activeTab === "vault" ? "Viendo ahora la bóveda digital" : "Accede a la bóveda digital con todos tus contratos."}
              </p>
            </section>
         </div>
 
-        {/* Columna de Línea de Tiempo (8/12) */}
+        {/* Columna de Contenido (8/12) */}
         <div className="lg:col-span-8">
-          {selectedCase ? (
-            <CaseTimeline
-              caseName={selectedCase.titulo}
-              currentStage={selectedCase.status}
-              events={generateDemoTimeline(selectedCase.status)}
-            />
-          ) : (
-            <div className="bg-white/50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 p-20 text-center backdrop-blur-sm">
-                <AlertCircle className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
-                <h3 className="text-slate-400 font-black text-xs uppercase tracking-widest">Esperando Selección</h3>
-                <p className="text-slate-400/60 text-[10px] uppercase font-bold mt-1">Elige un proceso para ver su seguimiento detallado</p>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mb-6">
+             <button 
+              onClick={() => setActiveTab("timeline")}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTab === "timeline" ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+              }`}
+             >
+               Seguimiento
+             </button>
+             <button 
+              onClick={() => setActiveTab("vault")}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTab === "vault" ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+              }`}
+             >
+               Documentos
+             </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab + (selectedCaseId || "")}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {selectedCase ? (
+                activeTab === "timeline" ? (
+                  <CaseTimeline
+                    caseName={selectedCase.title}
+                    currentStage={selectedCase.status}
+                    events={generateDemoTimeline(selectedCase.status)}
+                  />
+                ) : (
+                  <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-slate-200 dark:border-white/5 shadow-2xl">
+                    <LegalVault caseId={selectedCase.id} />
+                  </div>
+                )
+              ) : (
+                <div className="bg-white/50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 p-20 text-center backdrop-blur-sm">
+                    <AlertCircle className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
+                    <h3 className="text-slate-400 font-black text-xs uppercase tracking-widest">Esperando Selección</h3>
+                    <p className="text-slate-400/60 text-[10px] uppercase font-bold mt-1">Elige un proceso para ver su seguimiento detallado</p>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
