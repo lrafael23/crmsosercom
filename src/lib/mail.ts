@@ -1,6 +1,18 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicialización perezosa para evitar fallos en el build si no hay API Key
+let resendInstance: Resend | null = null;
+
+function getResend() {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey && process.env.NODE_ENV === "production") {
+       console.warn("[MAIL] Advertencia: RESEND_API_KEY no configurada.");
+    }
+    resendInstance = new Resend(apiKey || "dummy_key");
+  }
+  return resendInstance;
+}
 
 interface SendEmailParams {
   to: string | string[];
@@ -22,7 +34,7 @@ export async function sendEmail({
   reply_to
 }: SendEmailParams) {
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from,
       to,
       subject,
