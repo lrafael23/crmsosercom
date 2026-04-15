@@ -86,7 +86,7 @@ export async function findOrCreateFolder(auth: any, folderName: string, parentId
   const files = response.data.files;
 
   if (files && files.length > 0) {
-    return files[0].id;
+    return files[0].id as string;
   }
 
   // Crear si no existe
@@ -101,7 +101,11 @@ export async function findOrCreateFolder(auth: any, folderName: string, parentId
     fields: "id",
   });
 
-  const folderIdCreated = folder.data.id!;
+  const folderIdCreated = folder.data.id as string;
+
+  if (!folderIdCreated) {
+    throw new Error(`No se pudo crear o encontrar la carpeta: ${folderName}`);
+  }
 
   // 4. Acceso de Emergencia: Añadir admin como editor
   try {
