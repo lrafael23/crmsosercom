@@ -153,3 +153,143 @@ All exports of the module are statically known (It doesn't have dynamic exports)
 [debug] [2026-04-15T17:27:11.768Z] Error: ENOENT: no such file or directory, open 'R:\cmrsosercom\.next\server\middleware-manifest.json'
 [error] 
 [error] Error: An unexpected error has occurred.
+[debug] [2026-04-15T17:27:42.314Z] ----------------------------------------------------------------------
+[debug] [2026-04-15T17:27:42.316Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ivanv\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting,firestore
+[debug] [2026-04-15T17:27:42.317Z] CLI Version:   14.25.0
+[debug] [2026-04-15T17:27:42.317Z] Platform:      win32
+[debug] [2026-04-15T17:27:42.317Z] Node Version:  v24.11.1
+[debug] [2026-04-15T17:27:42.317Z] Time:          Wed Apr 15 2026 13:27:42 GMT-0400 (hora estándar de Chile)
+[debug] [2026-04-15T17:27:42.317Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-15T17:27:42.505Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-15T17:27:42.505Z] > authorizing via signed-in user (r.contactojuridico@gmail.com)
+[debug] [2026-04-15T17:27:42.505Z] [iam] checking project sosercom-cb383 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-15T17:27:42.506Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:42.506Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:42.507Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions [none]
+[debug] [2026-04-15T17:27:42.507Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions x-goog-quota-user=projects/sosercom-cb383
+[debug] [2026-04-15T17:27:42.507Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-15T17:27:44.601Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions 200
+[debug] [2026-04-15T17:27:44.601Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-15T17:27:44.602Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:44.602Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:44.602Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 [none]
+[debug] [2026-04-15T17:27:44.892Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 200
+[debug] [2026-04-15T17:27:44.893Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 {"projectId":"sosercom-cb383","projectNumber":"976367855256","displayName":"SOSERCOM","name":"projects/sosercom-cb383","resources":{"hostingSite":"sosercom-cb383"},"state":"ACTIVE","etag":"1_f322e6ae-50e0-4301-a5b5-8c7cb3176be5"}
+[debug] [2026-04-15T17:27:47.920Z] defaultcredentials: writing to file C:\Users\ivanv\AppData\Roaming\firebase\r_contactojuridico_gmail.com_application_default_credentials.json
+[debug] [2026-04-15T17:27:47.921Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:47.921Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:47.921Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites pageToken=&pageSize=10
+[debug] [2026-04-15T17:27:49.244Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 200
+[debug] [2026-04-15T17:27:49.244Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites {"sites":[{"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-15T17:27:49.245Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:49.245Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:49.245Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 
+[debug] [2026-04-15T17:27:49.813Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 200
+[debug] [2026-04-15T17:27:49.813Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites {"sites":[{"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-15T17:27:49.814Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:49.814Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:49.814Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config [none]
+[debug] [2026-04-15T17:27:50.399Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config 200
+[debug] [2026-04-15T17:27:50.399Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config {"projectId":"sosercom-cb383","appId":"1:976367855256:web:ceedb13e5c646f0e0992ed","storageBucket":"sosercom-cb383.firebasestorage.app","apiKey":"AIzaSyBJIr-cGLKccL2eEiURrjZnZ560Di68NA8","authDomain":"sosercom-cb383.firebaseapp.com","messagingSenderId":"976367855256","measurementId":"G-DEGKNYYGL0","projectNumber":"976367855256","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 15.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-04-15T17:27:56.871Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:56.871Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:27:56.871Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 [none]
+[debug] [2026-04-15T17:27:58.099Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 200
+[debug] [2026-04-15T17:27:58.099Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 {"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.2.3 (Turbopack)
+
+[info] - Environments: .env
+
+
+[info] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+[info]   Creating an optimized production build ...
+
+[info] 
+
+[info] > Build error occurred
+
+[info] Error: Turbopack build failed with 3 errors:
+./src/app/api/calendar/auth/route.ts:2:1
+Module not found: Can't resolve '@/lib/google/calendar'
+  1 | import { NextResponse } from "next/server";
+> 2 | import { getAuthUrl } from "@/lib/google/calendar";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | /**
+  5 |  * GET /api/calendar/auth?uid=...
+
+Import map: aliased to relative './src/lib/google/calendar' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/firm/causas/[id]/page.tsx:20:1
+Export default doesn't exist in target module
+  18 | } from "lucide-react";
+  19 | import LegalVault from "@/components/vault/LegalVault";
+> 20 | import CaseTimeline from "@/components/cases/CaseTimeline";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  21 |
+  22 | export default function CaseDetailPage() {
+  23 |   const { id } = useParams();
+
+The export default was not found in module [project]/src/components/cases/CaseTimeline.tsx [app-client] (ecmascript).
+Did you mean to import generateDemoTimeline?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/firm/causas/[id]/page.tsx [Client Component Browser]
+    ./src/app/firm/causas/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/firm/causas/[id]/page.tsx [Client Component SSR]
+    ./src/app/firm/causas/[id]/page.tsx [Server Component]
+
+
+./src/app/firm/causas/[id]/page.tsx:20:1
+Export default doesn't exist in target module
+  18 | } from "lucide-react";
+  19 | import LegalVault from "@/components/vault/LegalVault";
+> 20 | import CaseTimeline from "@/components/cases/CaseTimeline";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  21 |
+  22 | export default function CaseDetailPage() {
+  23 |   const { id } = useParams();
+
+The export default was not found in module [project]/src/components/cases/CaseTimeline.tsx [app-ssr] (ecmascript).
+Did you mean to import generateDemoTimeline?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/firm/causas/[id]/page.tsx [Client Component Browser]
+    ./src/app/firm/causas/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/firm/causas/[id]/page.tsx [Client Component SSR]
+    ./src/app/firm/causas/[id]/page.tsx [Server Component]
+
+
+    at <unknown> (./src/app/api/calendar/auth/route.ts:2:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/firm/causas/[id]/page.tsx:20:1)
+    at <unknown> (./src/app/firm/causas/[id]/page.tsx:20:1)
+
+[debug] [2026-04-15T17:28:15.958Z] Error: ENOENT: no such file or directory, open 'R:\cmrsosercom\.next\server\middleware-manifest.json'
+[error] 
+[error] Error: An unexpected error has occurred.

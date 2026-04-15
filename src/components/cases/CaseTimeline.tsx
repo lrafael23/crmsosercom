@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Circle, Clock, AlertCircle, XCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -95,13 +96,13 @@ function StatusTrafficLight({ currentStage }: { currentStage: CaseStage }) {
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export function CaseTimeline({
-  events,
-  currentStage,
+export default function CaseTimeline({
+  events = [],
+  currentStage = "intake",
   caseName,
 }: {
-  events: TimelineEvent[];
-  currentStage: CaseStage;
+  events?: TimelineEvent[];
+  currentStage?: CaseStage;
   caseName?: string;
 }) {
   return (

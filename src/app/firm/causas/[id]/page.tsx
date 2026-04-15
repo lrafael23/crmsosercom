@@ -145,7 +145,13 @@ export default function CaseDetailPage() {
               </div>
            </div>
         )}
-        {activeTab === "timeline" && <CaseTimeline caseId={caseData.id} />}
+        {activeTab === "timeline" && (
+          <CaseTimeline 
+            events={[]} // Aquí se podrían cargar eventos reales de Firestore en el futuro
+            currentStage={caseData.stage || "intake"} 
+            caseName={caseData.title} 
+          />
+        )}
       </motion.div>
     </div>
   );

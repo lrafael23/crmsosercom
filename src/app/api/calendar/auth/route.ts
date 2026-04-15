@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthUrl } from "@/lib/google/calendar";
+import { getAuthUrl } from "@/lib/google";
 
 /**
  * GET /api/calendar/auth?uid=...
