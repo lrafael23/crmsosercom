@@ -79,7 +79,7 @@ export interface BillingEvent {
  * Obtiene el uso actual del plan de un tenant.
  */
 export async function getTenantPlanUsage(tenantId: string): Promise<TenantPlanUsage | null> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return snap.data() as TenantPlanUsage;
@@ -89,7 +89,7 @@ export async function getTenantPlanUsage(tenantId: string): Promise<TenantPlanUs
  * Inicializa el uso del plan para un tenant nuevo.
  */
 export async function initTenantPlanUsage(tenantId: string, planId: PlanId): Promise<void> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   await setDoc(ref, {
     tenantId,
     planId,
@@ -157,7 +157,7 @@ export async function assertCanAddConference(tenantId: string): Promise<void> {
  * Incrementa el contador de conferencias mensuales.
  */
 export async function incrementMonthlyConferences(tenantId: string): Promise<void> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   await updateDoc(ref, {
     monthlyConferences: increment(1),
     updatedAt: serverTimestamp(),
@@ -168,7 +168,7 @@ export async function incrementMonthlyConferences(tenantId: string): Promise<voi
  * Incrementa el contador de causas activas.
  */
 export async function incrementActiveCases(tenantId: string): Promise<void> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   await updateDoc(ref, {
     activeCases: increment(1),
     updatedAt: serverTimestamp(),
@@ -179,7 +179,7 @@ export async function incrementActiveCases(tenantId: string): Promise<void> {
  * Decrementa el contador de causas activas (cuando se cierra o archiva una).
  */
 export async function decrementActiveCases(tenantId: string): Promise<void> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   await updateDoc(ref, {
     activeCases: increment(-1),
     updatedAt: serverTimestamp(),
@@ -190,7 +190,7 @@ export async function decrementActiveCases(tenantId: string): Promise<void> {
  * Incrementa el contador de seats activos.
  */
 export async function incrementActiveSeats(tenantId: string, isExtra: boolean): Promise<void> {
-  const ref = doc(db, "tenant_plan_usage", tenantId);
+  const ref = doc(collection(db, "tenant_plan_usage"), tenantId);
   await updateDoc(ref, {
     activeSeats: increment(1),
     extraSeats: isExtra ? increment(1) : increment(0),
@@ -230,7 +230,7 @@ export async function activateTenant(
     payerEmail: string;
   }
 ): Promise<void> {
-  const tenantRef = doc(db, "tenants", tenantId);
+  const tenantRef = doc(collection(db, "tenants"), tenantId);
   await updateDoc(tenantRef, {
     subscriptionStatus: "active",
     mpPreapprovalId: subscriptionData.mpPreapprovalId,

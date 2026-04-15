@@ -111,25 +111,27 @@ export default function AgendaPage() {
     syncGoogle();
 
     // 2. Escuchar cuota y uso
-    const usageRef = doc(db, "tenant_plan_usage", user.tenantId);
-    const getUsage = async () => {
-        const snap = await getDoc(usageRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            const planLimit = data.planId === 'basico' ? 5 : data.planId === 'full' ? 25 : null;
-            setQuotaInfo({
-                current: data.monthlyConferences || 0,
-                max: planLimit,
-                isFull: planLimit !== null && (data.monthlyConferences || 0) >= planLimit
-            });
-        }
-    };
-    getUsage();
+    if (user.tenantId) {
+        const usageRef = doc(collection(db, "tenant_plan_usage"), user.tenantId);
+        const getUsage = async () => {
+            const snap = await getDoc(usageRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                const planLimit = data.planId === 'basico' ? 5 : data.planId === 'full' ? 25 : null;
+                setQuotaInfo({
+                    current: data.monthlyConferences || 0,
+                    max: planLimit,
+                    isFull: planLimit !== null && (data.monthlyConferences || 0) >= planLimit
+                });
+            }
+        };
+        getUsage();
+    }
 
     // 3. Escuchar citas locales de Firestore
     const q = query(
       collection(db, "appointments"),
-      where("tenantId", "==", user.tenantId)
+      where("tenantId", "==", user.tenantId || "none")
     );
 
     const unsubscribe = onSnapshot(q, (snap) => {

@@ -80,14 +80,14 @@ export default function AgendarClientePage() {
           setIsExistingClient(!casesSnap.empty);
 
           // 2. Verificar uso del plan y contacto
-          const usageRef = doc(db, "tenant_plan_usage", lawyerData.tenantId);
+          const usageRef = doc(collection(db, "tenant_plan_usage"), lawyerData.tenantId);
           const uSnap = await getDoc(usageRef);
           if (uSnap.exists()) {
             const usageData = uSnap.data();
             setPlanUsage(usageData);
             
             // Validar cuota
-            const planRef = doc(db, "mp_subscription_plans", usageData.planId); // O usar PLANS local
+            const planRef = doc(collection(db, "mp_subscription_plans"), usageData.planId); // O usar PLANS local
             const planLimit = usageData.planId === 'basico' ? 5 : usageData.planId === 'full' ? 25 : null;
             if (planLimit !== null && usageData.monthlyConferences >= planLimit) {
               setIsQuotaExceeded(true);

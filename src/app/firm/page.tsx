@@ -113,18 +113,18 @@ export default function FirmDashboardPage() {
 
     async function loadData() {
       try {
-        const { doc, getDoc } = await import("firebase/firestore");
-        const usageSnap = await getDoc(doc(db, "tenant_plan_usage", user!.tenantId!));
+        const { doc, getDoc, collection } = await import("firebase/firestore");
+        const usageSnap = await getDoc(doc(collection(db, "tenant_plan_usage"), user!.tenantId!));
         if (usageSnap.exists()) setUsage(usageSnap.data() as TenantPlanUsage);
 
         const casesQ = query(
           collection(db, "cases"),
-          where("tenantId", "==", user!.tenantId),
+          where("tenantId", "==", user!.tenantId || "none"),
           where("status", "in", ["intake", "en_estudio", "en_tramitacion", "audiencia"])
         );
         const casesSnap = await getDocs(casesQ);
 
-        const clientsQ = query(collection(db, "clients"), where("tenantId", "==", user!.tenantId));
+        const clientsQ = query(collection(db, "clients"), where("tenantId", "==", user!.tenantId || "none"));
         const clientsSnap = await getDocs(clientsQ);
 
         setStats({ pendingCases: casesSnap.size, totalClients: clientsSnap.size });
