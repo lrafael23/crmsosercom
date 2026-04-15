@@ -55,6 +55,19 @@ export async function createGoogleEvent(tokens: any, eventData: any) {
   return res.data;
 }
 
+export async function listGoogleEvents(tokens: any) {
+  const auth = getAuthorizedClient(tokens);
+  const calendar = google.calendar({ version: "v3", auth });
+  const res = await calendar.events.list({
+    calendarId: "primary",
+    timeMin: new Date().toISOString(),
+    maxResults: 20,
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+  return res.data.items || [];
+}
+
 /**
  * GOOGLE DRIVE — Bóveda
  */
