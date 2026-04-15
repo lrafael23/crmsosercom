@@ -564,3 +564,90 @@ Type error: Cannot find name 'RefreshCw'.
 [debug] [2026-04-15T17:37:00.218Z] Error: ENOENT: no such file or directory, open 'R:\cmrsosercom\.next\export-marker.json'
 [error] 
 [error] Error: An unexpected error has occurred.
+[debug] [2026-04-15T17:37:25.439Z] ----------------------------------------------------------------------
+[debug] [2026-04-15T17:37:25.443Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ivanv\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting,firestore
+[debug] [2026-04-15T17:37:25.443Z] CLI Version:   14.25.0
+[debug] [2026-04-15T17:37:25.444Z] Platform:      win32
+[debug] [2026-04-15T17:37:25.444Z] Node Version:  v24.11.1
+[debug] [2026-04-15T17:37:25.444Z] Time:          Wed Apr 15 2026 13:37:25 GMT-0400 (hora estándar de Chile)
+[debug] [2026-04-15T17:37:25.444Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-15T17:37:25.630Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-15T17:37:25.631Z] > authorizing via signed-in user (r.contactojuridico@gmail.com)
+[debug] [2026-04-15T17:37:25.631Z] [iam] checking project sosercom-cb383 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-15T17:37:25.632Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:25.632Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:25.633Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions [none]
+[debug] [2026-04-15T17:37:25.633Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions x-goog-quota-user=projects/sosercom-cb383
+[debug] [2026-04-15T17:37:25.633Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-15T17:37:26.528Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions 200
+[debug] [2026-04-15T17:37:26.529Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sosercom-cb383:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-15T17:37:26.529Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:26.529Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:26.530Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 [none]
+[debug] [2026-04-15T17:37:26.826Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 200
+[debug] [2026-04-15T17:37:26.826Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383 {"projectId":"sosercom-cb383","projectNumber":"976367855256","displayName":"SOSERCOM","name":"projects/sosercom-cb383","resources":{"hostingSite":"sosercom-cb383"},"state":"ACTIVE","etag":"1_f322e6ae-50e0-4301-a5b5-8c7cb3176be5"}
+[debug] [2026-04-15T17:37:30.028Z] defaultcredentials: writing to file C:\Users\ivanv\AppData\Roaming\firebase\r_contactojuridico_gmail.com_application_default_credentials.json
+[debug] [2026-04-15T17:37:30.029Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:30.029Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:30.029Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites pageToken=&pageSize=10
+[debug] [2026-04-15T17:37:31.333Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 200
+[debug] [2026-04-15T17:37:31.333Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites {"sites":[{"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-15T17:37:31.333Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:31.333Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:31.334Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 
+[debug] [2026-04-15T17:37:31.861Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites 200
+[debug] [2026-04-15T17:37:31.861Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites {"sites":[{"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-15T17:37:31.861Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:31.862Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:31.862Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config [none]
+[debug] [2026-04-15T17:37:32.730Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config 200
+[debug] [2026-04-15T17:37:32.730Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sosercom-cb383/webApps/-/config {"projectId":"sosercom-cb383","appId":"1:976367855256:web:ceedb13e5c646f0e0992ed","storageBucket":"sosercom-cb383.firebasestorage.app","apiKey":"AIzaSyBJIr-cGLKccL2eEiURrjZnZ560Di68NA8","authDomain":"sosercom-cb383.firebaseapp.com","messagingSenderId":"976367855256","measurementId":"G-DEGKNYYGL0","projectNumber":"976367855256","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 15.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-04-15T17:37:39.721Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:39.721Z] Checked if tokens are valid: true, expires at: 1776276755274
+[debug] [2026-04-15T17:37:39.721Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 [none]
+[debug] [2026-04-15T17:37:40.834Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 200
+[debug] [2026-04-15T17:37:40.834Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/sosercom-cb383/sites/sosercom-cb383 {"name":"projects/sosercom-cb383/sites/sosercom-cb383","defaultUrl":"https://sosercom-cb383.web.app","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.2.3 (Turbopack)
+
+[info] - Environments: .env
+
+
+[info] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 16.8s
+
+[info]   Running TypeScript ...
+
+[info] Failed to type check.
+
+
+[info] ./src/lib/billing/index.ts:146:16
+Type error: Cannot find name 'PLANS'. Did you mean 'plan'?
+
+  144 |   if (!usage) throw new Error("Tenant sin plan inicializado");
+  145 |
+> 146 |   const plan = PLANS[usage.planId];
+      |                ^
+  147 |   if (plan.maxMonthlyConferences === null) return; // Ilimitado
+  148 |
+  149 |   if (usage.monthlyConferences >= plan.maxMonthlyConferences) {
+
+[info] Next.js build worker exited with code: 1 and signal: null
+
+[debug] [2026-04-15T17:38:15.812Z] Error: ENOENT: no such file or directory, open 'R:\cmrsosercom\.next\export-marker.json'
+[error] 
+[error] Error: An unexpected error has occurred.

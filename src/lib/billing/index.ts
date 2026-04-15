@@ -18,7 +18,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import { canAddCase, canAddSeat, type PlanId } from "@/lib/plans";
+import { canAddCase, canAddSeat, type PlanId, PLANS } from "@/lib/plans";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
