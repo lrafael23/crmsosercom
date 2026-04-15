@@ -6,16 +6,34 @@ import { doc, getDoc } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 export type UserRole =
+  // Plataforma Sosercom
   | "super_admin_global"
   | "admin"
+  // Estudio jurídico (tenant)
+  | "owner_firm"      // Abogado jefe / dueño del estudio
   | "abogado"
   | "contador"
   | "tributario"
   | "staff"
+  // Cliente final
+  | "cliente_final"
+  // Roles legacy (compatibilidad hacia atrás)
   | "cliente";
 
 export type UserStatus = "pending_validation" | "active" | "suspended";
+
+export type SubscriptionStatus =
+  | "pending"
+  | "authorized"
+  | "active"
+  | "paused"
+  | "cancelled"
+  | "past_due"
+  | "rejected"
+  | null;
 
 export interface AppUser {
   uid: string;
@@ -23,9 +41,14 @@ export interface AppUser {
   displayName: string | null;
   role: UserRole;
   status: UserStatus;
+  // Multi-tenancy
   tenantId: string | null;
   companyId: string | null;
   department: string | null;
+  // Plan y suscripción (solo para owner_firm)
+  planId: string | null;
+  subscriptionStatus: SubscriptionStatus;
+  // Trazabilidad
   createdBy?: string | null;
   validatedBy?: string | null;
 }
@@ -34,125 +57,223 @@ interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   logout: () => Promise<void>;
+  impersonate: (targetUid: string) => Promise<void>;
+  stopImpersonating: () => Promise<void>;
+  isImpersonating: boolean;
+  realUser: AppUser | null;
 }
 
-const ADMIN_ROLES: UserRole[] = ["admin", "abogado", "contador", "tributario", "staff"];
-const CLIENT_ROLES: UserRole[] = ["cliente"];
+// ─── Constantes de Roles ─────────────────────────────────────────────────────
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  logout: async () => {},
-});
+const FIRM_ROLES: UserRole[] = ["owner_firm", "abogado", "contador", "tributario", "staff"];
+const CLIENT_ROLES: UserRole[] = ["cliente_final", "cliente"];
+const SOSERCOM_ROLES: UserRole[] = ["super_admin_global", "admin"];
 
-function isUserRole(value: unknown): value is UserRole {
-  return ["super_admin_global", "admin", "abogado", "contador", "tributario", "staff", "cliente"].includes(
-    String(value),
-  );
+export function isFirmRole(role: UserRole | null | undefined): boolean {
+  return !!role && FIRM_ROLES.includes(role);
 }
 
-function isUserStatus(value: unknown): value is UserStatus {
-  return ["pending_validation", "active", "suspended"].includes(String(value));
-}
-
-export function isAdminRole(role: UserRole | null | undefined) {
-  return !!role && ADMIN_ROLES.includes(role);
-}
-
-export function isClientRole(role: UserRole | null | undefined) {
+export function isClientRole(role: UserRole | null | undefined): boolean {
   return !!role && CLIENT_ROLES.includes(role);
 }
 
-export function getDefaultRouteForRole(role: UserRole | null | undefined) {
-  if (!role) return "/login";
-  if (role === "super_admin_global") return "/super-admin";
-  if (isAdminRole(role)) return "/admin";
-  return "/dashboard";
+export function isSosercomRole(role: UserRole | null | undefined): boolean {
+  return !!role && SOSERCOM_ROLES.includes(role);
 }
 
-export function canAccessRoute(role: UserRole | null | undefined, pathname: string) {
+export function isSuperAdmin(role: UserRole | null | undefined): boolean {
+  return role === "super_admin_global";
+}
+
+export function isOwnerFirm(role: UserRole | null | undefined): boolean {
+  return role === "owner_firm";
+}
+
+// ─── Rutas por Rol ────────────────────────────────────────────────────────────
+
+export function getDefaultRouteForRole(role: UserRole | null | undefined): string {
+  if (!role) return "/login";
+  if (role === "super_admin_global") return "/super-admin";
+  if (role === "admin") return "/admin";
+  if (role === "owner_firm") return "/firm";
+  if (isFirmRole(role)) return "/firm";
+  if (isClientRole(role)) return "/cliente";
+  return "/login";
+}
+
+export function canAccessRoute(role: UserRole | null | undefined, pathname: string): boolean {
   if (!role) return false;
 
-  if (pathname.startsWith("/super-admin")) {
-    return role === "super_admin_global";
-  }
+  // Super admin puede acceder a todo
+  if (role === "super_admin_global") return true;
 
+  // Rutas de super-admin — solo super_admin_global
+  if (pathname.startsWith("/super-admin")) return false;
+
+  // Admin Sosercom
   if (pathname.startsWith("/admin")) {
-    return role === "super_admin_global" || isAdminRole(role);
+    return role === "admin";
   }
 
+  // Rutas del estudio
+  if (pathname.startsWith("/firm")) {
+    return isFirmRole(role);
+  }
+
+  // Portal del cliente final
+  if (pathname.startsWith("/cliente")) {
+    return isClientRole(role);
+  }
+
+  // Rutas legacy
   if (pathname.startsWith("/dashboard")) {
-    return role === "super_admin_global" || isClientRole(role);
+    return isClientRole(role) || isFirmRole(role);
   }
 
   return true;
 }
 
-async function getAppUser(uid: string, email: string | null, displayName: string | null) {
+// ─── Lecturas de Firestore ────────────────────────────────────────────────────
+
+export type UserRole_Internal = UserRole;
+
+function isValidRole(value: unknown): value is UserRole {
+  const validRoles: UserRole[] = [
+    "super_admin_global", "admin",
+    "owner_firm", "abogado", "contador", "tributario", "staff",
+    "cliente_final", "cliente",
+  ];
+  return validRoles.includes(String(value) as UserRole);
+}
+
+function isValidStatus(value: unknown): value is UserStatus {
+  return ["pending_validation", "active", "suspended"].includes(String(value));
+}
+
+async function getAppUser(
+  uid: string,
+  email: string | null,
+  displayName: string | null
+): Promise<AppUser | null> {
   const userDoc = await getDoc(doc(db, "users", uid));
+  if (!userDoc.exists()) return null;
 
-  if (!userDoc.exists()) {
-    return null;
-  }
-
-  const userData = userDoc.data();
-  const role = isUserRole(userData.role) ? userData.role : null;
-
-  if (!role) {
-    return null;
-  }
+  const data = userDoc.data();
+  const role = isValidRole(data.role) ? data.role : null;
+  if (!role) return null;
 
   return {
     uid,
     email,
-    displayName: userData.displayName ?? displayName,
+    displayName: data.displayName ?? displayName,
     role,
-    status: isUserStatus(userData.status) ? userData.status : "pending_validation",
-    tenantId: userData.tenantId ?? null,
-    companyId: userData.companyId ?? null,
-    department: userData.department ?? null,
-    createdBy: userData.createdBy ?? null,
-    validatedBy: userData.validatedBy ?? null,
-  } satisfies AppUser;
+    status: isValidStatus(data.status) ? data.status : "pending_validation",
+    tenantId: data.tenantId ?? null,
+    companyId: data.companyId ?? null,
+    department: data.department ?? null,
+    planId: data.planId ?? null,
+    subscriptionStatus: data.subscriptionStatus ?? null,
+    createdBy: data.createdBy ?? null,
+    validatedBy: data.validatedBy ?? null,
+  };
 }
 
-export async function resolveAppUserFromAuth(uid: string, email: string | null, displayName: string | null) {
-  return getAppUser(uid, email, displayName);
-}
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  logout: async () => {},
+  impersonate: async () => {},
+  stopImpersonating: async () => {},
+  isImpersonating: false,
+  realUser: null,
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [realUser, setRealUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-
       if (!firebaseUser) {
         setUser(null);
+        setRealUser(null);
         setLoading(false);
         return;
       }
-
       try {
-        const appUser = await getAppUser(firebaseUser.uid, firebaseUser.email, firebaseUser.displayName);
+        const appUser = await getAppUser(
+          firebaseUser.uid,
+          firebaseUser.email,
+          firebaseUser.displayName
+        );
         setUser(appUser);
+        setRealUser(appUser);
+
+        if (appUser) {
+          document.cookie = `portal360-session=true; path=/; max-age=86400`;
+          document.cookie = `portal360-role=${appUser.role}; path=/; max-age=86400`;
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         setUser(null);
+        setRealUser(null);
       } finally {
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
   const logout = async () => {
     try {
       await signOut(auth);
+      // Eliminar cookies para el middleware
+      document.cookie = "portal360-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "portal360-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+
+  const impersonate = async (targetUid: string) => {
+    if (realUser?.role !== "super_admin_global") return;
+    setLoading(true);
+    try {
+      const targetSnap = await getDoc(doc(db, "users", targetUid));
+      if (targetSnap.exists()) {
+        const data = targetSnap.data();
+        const targetUser: AppUser = {
+          uid: targetUid,
+          email: data.email ?? null,
+          displayName: data.displayName ?? null,
+          role: data.role as UserRole,
+          status: data.status as UserStatus,
+          tenantId: data.tenantId ?? null,
+          companyId: data.companyId ?? null,
+          department: data.department ?? null,
+          planId: data.planId ?? null,
+          subscriptionStatus: data.subscriptionStatus ?? null,
+        };
+        setUser(targetUser);
+        
+        // Actualizar cookies durante impersonación
+        document.cookie = `portal360-role=${targetUser.role}; path=/; max-age=3600`;
+      }
+    } catch (e) {
+      console.error("Error impersonating:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopImpersonating = async () => {
+    setUser(realUser);
+    if (realUser) {
+      document.cookie = `portal360-role=${realUser.role}; path=/; max-age=3600`;
     }
   };
 
@@ -161,11 +282,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       logout,
+      impersonate,
+      stopImpersonating,
+      isImpersonating: !!user && !!realUser && user.uid !== realUser.uid,
+      realUser,
     }),
-    [user, loading],
+    [user, realUser, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function resolveAppUserFromAuth(
+  uid: string,
+  email: string | null,
+  displayName: string | null
+) {
+  return getAppUser(uid, email, displayName);
 }
 
 export const useAuth = () => useContext(AuthContext);

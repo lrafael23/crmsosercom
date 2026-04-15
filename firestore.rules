@@ -1,132 +1,306 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAuthenticated() {
-      return request.auth != null;
+
+    // ─── Funciones Helper ─────────────────────────────────────────────────────
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function currentUserDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    function userRole() {
+      return userDoc().role;
     }
 
-    function currentUser() {
-      return currentUserDoc().data;
-    }
-
-    function isKnownUser() {
-      return isAuthenticated() && currentUserDoc().exists();
+    function userTenantId() {
+      return userDoc().tenantId;
     }
 
     function isSuperAdmin() {
-      return isKnownUser() && currentUser().role == 'super_admin_global';
+      return userRole() == "super_admin_global";
     }
 
-    function isTenantAdmin() {
-      return isKnownUser() && currentUser().role == 'admin' && currentUser().status == 'active';
+    function isSosercomAdmin() {
+      return userRole() == "admin" || isSuperAdmin();
     }
 
-    function isTenantTeamMember() {
-      return isKnownUser() && currentUser().role in ['admin', 'abogado', 'contador', 'tributario', 'staff'] && currentUser().status == 'active';
+    function isOwnerFirm() {
+      return userRole() == "owner_firm";
     }
 
-    function isActiveClient() {
-      return isKnownUser() && currentUser().role == 'cliente' && currentUser().status == 'active';
+    function isFirmMember() {
+      let role = userRole();
+      return role == "owner_firm" || role == "abogado" ||
+             role == "contador" || role == "tributario" || role == "staff";
     }
 
-    function sameTenant(tenantId) {
-      return isKnownUser() && tenantId != null && currentUser().tenantId == tenantId;
+    function isClientFinal() {
+      let role = userRole();
+      return role == "cliente_final" || role == "cliente";
     }
 
-    function sameCompany(companyId) {
-      return isKnownUser() && companyId != null && currentUser().companyId == companyId;
+    function isAuth() {
+      return request.auth != null;
     }
 
-    function canReadUser(targetUser) {
-      return isSuperAdmin()
-        || request.auth.uid == targetUser.uid
-        || (isTenantTeamMember() && sameTenant(targetUser.tenantId));
+    function isActive() {
+      return isAuth() && userDoc().status == "active";
     }
 
-    function selfEditableFieldsUnchanged() {
-      return request.resource.data.role == resource.data.role
-        && request.resource.data.status == resource.data.status
-        && request.resource.data.tenantId == resource.data.tenantId
-        && request.resource.data.companyId == resource.data.companyId
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.validatedBy == resource.data.validatedBy
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email;
+    function belongsToTenant(tenantId) {
+      return isAuth() && userTenantId() == tenantId;
     }
 
-    function isSafeTenantRole(role) {
-      return role in ['admin', 'abogado', 'contador', 'tributario', 'staff', 'cliente'];
-    }
-
-    function validTenantScopedUserCreate() {
-      return isTenantAdmin()
-        && sameTenant(request.resource.data.tenantId)
-        && isSafeTenantRole(request.resource.data.role)
-        && request.resource.data.role != 'super_admin_global'
-        && request.resource.data.status in ['pending_validation', 'active', 'suspended'];
-    }
-
-    function validTenantScopedUserUpdate() {
-      return isTenantAdmin()
-        && sameTenant(resource.data.tenantId)
-        && sameTenant(request.resource.data.tenantId)
-        && resource.data.role != 'super_admin_global'
-        && request.resource.data.role != 'super_admin_global'
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.createdBy == resource.data.createdBy;
-    }
+    // ─── Users ────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
-      allow read: if isKnownUser() && canReadUser(resource.data);
-
-      allow create: if isSuperAdmin()
-        || (isKnownUser() && request.resource.data.uid == userId && request.auth.uid == userId)
-        || validTenantScopedUserCreate();
-
-      allow update: if isSuperAdmin()
-        || (isKnownUser() && request.auth.uid == userId && selfEditableFieldsUnchanged())
-        || validTenantScopedUserUpdate();
-
-      allow delete: if isSuperAdmin()
-        || (isTenantAdmin() && sameTenant(resource.data.tenantId) && resource.data.role != 'super_admin_global');
+      allow read: if isAuth() && (request.auth.uid == userId || isSosercomAdmin());
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isAuth() && (request.auth.uid == userId || isSosercomAdmin());
+      allow delete: if isSuperAdmin();
     }
 
-    match /companies/{companyId} {
-      allow read: if isSuperAdmin()
-        || (isTenantTeamMember() && sameTenant(resource.data.tenantId))
-        || (isActiveClient() && sameTenant(resource.data.tenantId) && sameCompany(companyId));
+    // ─── Tenants ──────────────────────────────────────────────────────────────
 
-      allow create, update, delete: if isSuperAdmin()
-        || (isTenantAdmin() && sameTenant(request.resource.data.tenantId));
+    match /tenants/{tenantId} {
+      allow read: if isAuth() && (isSuperAdmin() || belongsToTenant(tenantId));
+      allow create: if isAuth(); // Se crea en el proceso de registro
+      allow update: if isAuth() && (isSuperAdmin() || (isOwnerFirm() && belongsToTenant(tenantId)));
+      allow delete: if isSuperAdmin();
     }
 
-    match /documents/{documentId} {
-      allow read: if isSuperAdmin()
-        || (isTenantTeamMember() && sameTenant(resource.data.tenantId))
-        || (isActiveClient() && sameTenant(resource.data.tenantId) && sameCompany(resource.data.companyId));
+    // ─── Tenant Members ───────────────────────────────────────────────────────
 
-      allow create, update, delete: if isSuperAdmin()
-        || (isTenantTeamMember() && sameTenant(request.resource.data.tenantId));
+    match /tenant_members/{memberId} {
+      allow read: if isAuth() && (isSuperAdmin() || belongsToTenant(resource.data.tenantId));
+      allow write: if isAuth() && (isSuperAdmin() || (isOwnerFirm() && belongsToTenant(request.resource.data.tenantId)));
     }
+
+    // ─── Tenant Plan Usage ────────────────────────────────────────────────────
+
+    match /tenant_plan_usage/{tenantId} {
+      allow read: if isAuth() && (isSuperAdmin() || belongsToTenant(tenantId));
+      allow write: if isSuperAdmin(); // Solo el backend/webhook actualiza esto
+    }
+
+    // ─── Subscription Plans (definición de planes internos) ───────────────────
+
+    match /subscription_plans/{planId} {
+      allow read: if true; // Público — necesario para la página /planes
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── MP Subscription Plans (IDs de Mercado Pago) ──────────────────────────
+
+    match /mp_subscription_plans/{planId} {
+      allow read: if isActive();
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── Subscriptions ────────────────────────────────────────────────────────
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.tenantId == userTenantId()
+      );
+      allow create: if isAuth();
+      allow update: if isSuperAdmin(); // Solo el webhook actualiza el estado
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Subscription Events (historial) ──────────────────────────────────────
+
+    match /subscription_events/{eventId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.tenantId == userTenantId()
+      );
+      allow write: if isSuperAdmin(); // Solo backend/webhook
+    }
+
+    // ─── Payments ─────────────────────────────────────────────────────────────
+
+    match /payments/{paymentId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.tenantId == userTenantId() ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isAuth();
+      allow update: if isSuperAdmin(); // Solo webhook actualiza el estado
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Payment Orders ───────────────────────────────────────────────────────
+
+    match /payment_orders/{orderId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.tenantId == userTenantId()
+      );
+      allow create: if isAuth();
+      allow update: if isSuperAdmin();
+    }
+
+    // ─── Billing Events ───────────────────────────────────────────────────────
+
+    match /billing_events/{eventId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isOwnerFirm() && resource.data.tenantId == userTenantId())
+      );
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── Clients ──────────────────────────────────────────────────────────────
+
+    match /clients/{clientId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        request.auth.uid == clientId
+      );
+      allow create: if isAuth() && (isFirmMember() || isOwnerFirm() || isSuperAdmin());
+      allow update: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId())
+      );
+      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+    }
+
+    // ─── Cases (Causas) ───────────────────────────────────────────────────────
+
+    match /cases/{caseId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow update: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId())
+      );
+      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+    }
+
+    // ─── Case Timeline Events ─────────────────────────────────────────────────
+
+    match /case_timeline_events/{eventId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Documents ────────────────────────────────────────────────────────────
+
+    match /documents/{docId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isActive() && (isFirmMember() || isSuperAdmin() || isClientFinal());
+      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+    }
+
+    // ─── Appointments ─────────────────────────────────────────────────────────
+
+    match /appointments/{aptId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow delete: if isSuperAdmin() || (isFirmMember() && resource.data.tenantId == userTenantId());
+    }
+
+    // ─── Calendar Events ──────────────────────────────────────────────────────
+
+    match /calendar_events/{eventId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.tenantId == userTenantId() ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow write: if isActive() && (isFirmMember() || isSuperAdmin());
+    }
+
+    // ─── Tickets ──────────────────────────────────────────────────────────────
+
+    match /tickets/{ticketId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
+      );
+      allow create: if isAuth();
+      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Ticket Messages ──────────────────────────────────────────────────────
+
+    match /ticket_messages/{msgId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        resource.data.tenantId == userTenantId() ||
+        resource.data.clientId == request.auth.uid
+      );
+      allow create: if isAuth();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ─── Audit Logs ───────────────────────────────────────────────────────────
 
     match /audit_logs/{logId} {
       allow read: if isSuperAdmin();
-
-      allow create: if isKnownUser()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.userRole == currentUser().role
-        && request.resource.data.companyId == currentUser().companyId;
-
-      allow update, delete: if false;
+      allow create: if isAuth();
+      allow update, delete: if isSuperAdmin();
     }
 
-    match /{document=**} {
-      allow read, write: if isSuperAdmin();
+    // ─── Notifications ────────────────────────────────────────────────────────
+
+    match /notifications/{notifId} {
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid || isSuperAdmin()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Legacy: Companies ────────────────────────────────────────────────────
+    // Mantenida para compatibilidad con datos existentes
+
+    match /companies/{companyId} {
+      allow read: if isAuth() && (isSosercomAdmin() || belongsToTenant(companyId));
+      allow write: if isSosercomAdmin();
+    }
+
+    // ─── Legacy: Leads, Workflows, Tax Estimates ──────────────────────────────
+
+    match /leads/{leadId} {
+      allow read, write: if isAuth() && (isSosercomAdmin() || isFirmMember());
+    }
+
+    match /workflows/{wfId} {
+      allow read: if isAuth() && (isSosercomAdmin() || isFirmMember() || isClientFinal());
+      allow write: if isAuth() && (isSosercomAdmin() || isFirmMember());
+    }
+
+    match /tax_estimates/{taxId} {
+      allow read, write: if isAuth() && (isSosercomAdmin() || isFirmMember() || isClientFinal());
     }
   }
 }

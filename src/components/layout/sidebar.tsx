@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, Briefcase, FileText, FolderOpen, Home, LifeBuoy, LogOut, Scale, Settings, Shield, Users } from "lucide-react";
 
-import { getDefaultRouteForRole, isAdminRole, isClientRole, useAuth } from "@/lib/auth/AuthContext";
+import { getDefaultRouteForRole, isSosercomRole, isClientRole, useAuth } from "@/lib/auth/AuthContext";
 import { cn } from "@/lib/utils";
 
 const clientItems = [
@@ -75,7 +75,7 @@ export function Sidebar() {
   }
 
   const showClient = user.role === "super_admin_global" || isClientRole(user.role);
-  const showAdmin = user.role === "super_admin_global" || isAdminRole(user.role);
+  const showAdmin = user.role === "super_admin_global" || isSosercomRole(user.role);
   const showSuperAdmin = user.role === "super_admin_global";
 
   return (
