@@ -12,10 +12,14 @@ import {
   BarChart3, 
   Zap, 
   Globe, 
-  Lock
+  Lock,
+  Briefcase,
+  User as UserIcon,
+  HeartHandshake
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import DashboardCarousel from "@/components/dashboard/DashboardCarousel";
 
 export default function Home() {
   const targetRef = useRef(null);
@@ -55,14 +59,14 @@ export default function Home() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link href="/login">
+          <Link href="/login?role=cliente">
             <Button variant="ghost" className="hidden sm:inline-flex font-semibold text-slate-700 dark:text-slate-300">
-              Iniciar Sesión
+              Acceso Cliente
             </Button>
           </Link>
-          <Link href="/login">
+          <Link href="/login?role=socio">
             <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl px-6 h-11 font-semibold transition-all hover:shadow-xl hover:shadow-emerald-500/20 active:scale-95">
-              Acceso Corporativo
+              Acceso Profesional
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
@@ -99,16 +103,65 @@ export default function Home() {
                 El ecosistema digital líder para empresas que exigen precisión absoluta en Auditoría Jurídica, Contabilidad Estratégica y Cumplimiento Tributario.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-5 pt-6">
-                <Link href="/login">
-                  <Button size="lg" className="h-16 px-10 rounded-2xl bg-slate-950 text-white hover:bg-slate-800 text-lg font-bold shadow-2xl shadow-slate-200 transition-all active:scale-95 group">
-                    Comenzar Ahora
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-                <Button variant="outline" size="lg" className="h-16 px-10 rounded-2xl border-slate-200 hover:bg-slate-100 text-lg font-semibold transition-all">
-                  Ver Video Demo
-                </Button>
+              <div className="grid md:grid-cols-2 gap-8 pt-10 max-w-4xl w-full">
+                {/* Módulo Cliente */}
+                <motion.div
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none text-left flex flex-col justify-between group cursor-pointer"
+                >
+                  <div>
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                      <UserIcon className="w-7 h-7 text-emerald-600 group-hover:text-white" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">Busco un Profesional</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                      Agenda citas, realiza pagos de consultas únicas y gestiona tus procesos legales con transparencia.
+                    </p>
+                  </div>
+                  <div className="mt-8 flex flex-col gap-4">
+                    <Link href="/registro/cliente">
+                      <Button className="w-full h-14 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold group">
+                        Empieza como Cliente
+                        <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
+                    <Link href="/login?role=cliente" className="text-center text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors">
+                      ¿Ya tengo cuenta? Ingresar aquí
+                    </Link>
+                  </div>
+                </motion.div>
+
+                {/* Módulo Profesional */}
+                <motion.div
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 p-4">
+                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                      SaaS Business
+                    </div>
+                  </div>
+                  <div>
+                    <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-all duration-300">
+                      <Briefcase className="w-7 h-7 text-emerald-500 group-hover:text-white" />
+                    </div>
+                    <h3 className="text-2xl font-black text-white mb-3 tracking-tight">Software de Gestión</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                      La plataforma integral para abogados y contadores. Control total de causas, equipo y facturación.
+                    </p>
+                  </div>
+                  <div className="mt-8 flex flex-col gap-4">
+                    <Link href="/planes">
+                      <Button className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold group">
+                        Soy Profesional
+                        <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
+                    <Link href="/login?role=socio" className="text-center text-xs font-bold text-slate-400 hover:text-emerald-500 transition-colors">
+                      Acceso para Socios registrados
+                    </Link>
+                  </div>
+                </motion.div>
               </div>
 
               {/* Trust Indicators */}
@@ -158,12 +211,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500 to-cyan-500 rounded-[2rem] opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"></div>
-                <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-video flex items-center justify-center font-bold text-emerald-600 text-xl tracking-widest">
-                   {/* This would be an image/demo in a real app */}
-                   DASHBOARD PREVIEW
-                </div>
+              <div className="relative group lg:h-[600px] w-full">
+                <DashboardCarousel />
               </div>
             </div>
            </div>

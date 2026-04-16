@@ -17,7 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="absolute top-0 left-0 right-0 bg-rose-600 text-white text-[10px] sm:text-xs font-bold py-1 px-4 flex items-center justify-between z-[100] animate-bounce-subtle">
             <div className="flex items-center gap-2">
               <span className="animate-pulse">●</span>
-              <span>MODO SOPORTE: Viendo como {user?.displayName} ({user?.role})</span>
+              <span>MODO SOPORTE: Viendo como {String(user?.displayName || "Usuario")} ({String(user?.role || "staff")})</span>
             </div>
             <button 
               onClick={stopImpersonating}

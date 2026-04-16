@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, collection, addDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { PLANS, PLANS_ARRAY, formatCLP, type PlanId } from "@/lib/plans";
+import { setAuthCookies } from "@/lib/auth/session";
 import { ArrowLeft, ArrowRight, Building2, User, CreditCard, CheckCircle2, Loader2 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -422,6 +423,9 @@ function RegistroEstudioContent() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+
+      // Sincronizar cookies inmediatamente
+      setAuthCookies("owner_firm");
 
       // 5. Redirigir al checkout de Mercado Pago
       router.push(`/checkout/${data.planId}?tenantId=${tenantId}`);

@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { setAuthCookies, clearAuthCookies } from "./session";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,15 @@ function isValidStatus(value: unknown): value is UserStatus {
   return ["pending_validation", "active", "suspended"].includes(String(value));
 }
 
+function ensureString(value: any, fallback: string | null = null): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    // Si es un objeto de Firestore accidental (como un mapa vacío), devolvemos el fallback
+    return fallback;
+  }
+  return value || fallback;
+}
+
 async function getAppUser(
   uid: string,
   email: string | null,
@@ -159,22 +169,27 @@ async function getAppUser(
   if (!userDoc.exists()) return null;
 
   const data = userDoc.data();
-  const role = isValidRole(data.role) ? data.role : null;
-  if (!role) return null;
+  const rawRole = data.role;
+  const role = isValidRole(rawRole) ? (rawRole as UserRole) : null;
+  
+  if (!role) {
+    console.warn(`Usuario ${uid} tiene un rol inválido o ausente:`, rawRole);
+    return null;
+  }
 
   return {
     uid,
-    email,
-    displayName: data.displayName ?? displayName,
+    email: ensureString(data.email, email),
+    displayName: ensureString(data.displayName, displayName),
     role,
-    status: isValidStatus(data.status) ? data.status : "pending_validation",
-    tenantId: data.tenantId ?? null,
-    companyId: data.companyId ?? null,
-    department: data.department ?? null,
-    planId: data.planId ?? null,
+    status: isValidStatus(data.status) ? (data.status as UserStatus) : "pending_validation",
+    tenantId: ensureString(data.tenantId),
+    companyId: ensureString(data.companyId),
+    department: ensureString(data.department),
+    planId: ensureString(data.planId),
     subscriptionStatus: data.subscriptionStatus ?? null,
-    createdBy: data.createdBy ?? null,
-    validatedBy: data.validatedBy ?? null,
+    createdBy: ensureString(data.createdBy),
+    validatedBy: ensureString(data.validatedBy),
   };
 }
 
@@ -214,8 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRealUser(appUser);
 
         if (appUser) {
-          document.cookie = `portal360-session=true; path=/; max-age=86400`;
-          document.cookie = `portal360-role=${appUser.role}; path=/; max-age=86400`;
+          setAuthCookies(appUser.role);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -231,9 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
-      // Eliminar cookies para el middleware
-      document.cookie = "portal360-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      document.cookie = "portal360-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      clearAuthCookies();
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -248,14 +260,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = targetSnap.data();
         const targetUser: AppUser = {
           uid: targetUid,
-          email: data.email ?? null,
-          displayName: data.displayName ?? null,
-          role: data.role as UserRole,
-          status: data.status as UserStatus,
-          tenantId: data.tenantId ?? null,
-          companyId: data.companyId ?? null,
-          department: data.department ?? null,
-          planId: data.planId ?? null,
+          email: ensureString(data.email),
+          displayName: ensureString(data.displayName),
+          role: isValidRole(data.role) ? (data.role as UserRole) : "staff",
+          status: isValidStatus(data.status) ? (data.status as UserStatus) : "active",
+          tenantId: ensureString(data.tenantId),
+          companyId: ensureString(data.companyId),
+          department: ensureString(data.department),
+          planId: ensureString(data.planId),
           subscriptionStatus: data.subscriptionStatus ?? null,
         };
         setUser(targetUser);

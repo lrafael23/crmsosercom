@@ -9,25 +9,28 @@ La arquitectura técnica de **SaaS Multi-tenant**, jerarquía de roles y segurid
 - **Código**: Sincronizado con GitHub (`master`).
 - **Navegación**: Los roles (`super_admin_global`, `admin`, `staff`, `cliente`) tienen rutas asignadas y restricciones de acceso automáticas.
 
-## Tareas Pendientes (Para mañana)
+## Tareas Pendientes (Para mañana - Día 4)
 
-### 1. Ejecutar Normalización de Datos Reales
-Ya existe la herramienta, pero falta la ejecución final sobre los registros de producción.
-- **Ruta**: `/super-admin/migrate`
-- **Acción**: Iniciar sesión como Super Admin y ejecutar el proceso de normalización para que los usuarios existentes se adapten al nuevo esquema (Role rename, status assignment).
+### 1. Escalabilidad y Plan Blaze (CRÍTICO)
+Para que las APIs y el SSR funcionen en la web app, es necesario:
+- Actualizar el proyecto `sosercom-cb383` al **Plan Blaze**.
+- Re-ejecutar `firebase deploy` para activar las Cloud Functions de Next.js.
 
-### 2. Construcción de Interfaz de Flujo de Entrada (Onboarding)
-Comenzar con la implementación visual y lógica de:
-- Landing Page comercial (ajustar calls to action).
-- Formulario de Registro con selector de tipo de usuario/entorno.
-- Pasarela de Términos y Condiciones / Contratos digitales.
-- Módulo de subida de antecedentes para validación.
+### 2. Integración de Almacenamiento (Google Drive)
+- Configurar el hook de Google Drive en el módulo **LawVault™**.
+- Evitar el uso de Firebase Storage para documentos pesados de clientes.
+
+### 3. Configuración de API Keys Reales
+- Sustituir los placeholders en `.env` por las credenciales reales de **Mercado Pago** y **Resend**.
+- Configurar los Webhooks de pago en producción.
+
+### 4. Simulación Completa de Experiencia (0MVP)
+- Generar el flujo completo: Registro -> Pago -> Onboarding -> Acceso a Dashboards Premium.
 
 ## Archivos Críticos
-- `src/lib/auth/AuthContext.tsx`: Corazón de la lógica de usuario y tenant.
-- `src/components/auth/ProtectedRoute.tsx`: Portero de rutas.
-- `src/app/super-admin/migrate/page.tsx`: Utilidad de migración.
-- `firestore.rules`: Definición de seguridad por tenant.
+- `firestore.rules`: Reglas de seguridad blindadas (Ya desplegadas).
+- `src/lib/mercadopago/server.ts`: Configuración de pagos.
+- `src/app/cliente/documentos/page.tsx`: Módulo LawVault.
 
 ## Mensaje de Reanudación
-"Todo está desplegado y sincronizado en GitHub. Inicia sesión como Super Admin, ve a `/super-admin/migrate` para normalizar la base de datos, y luego comencemos con la interfaz de registro y validación de antecedentes."
+"Día 3 completado: Seguridad blindada y módulos premium (LawVault, ClientHub, etc.) implementados. Mañana iniciaremos con la actualización al Plan Blaze y la integración de Google Drive para los documentos."

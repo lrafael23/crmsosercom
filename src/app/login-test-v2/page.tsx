@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth, getDefaultRouteForRole, resolveAppUserFromAuth } from "@/lib/auth/AuthContext";
@@ -16,40 +16,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando portal...</div>}>
-      <LoginContent />
-    </Suspense>
-  );
-}
-
-function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { user, isImpersonating, logout } = useAuth();
-  const searchParams = useSearchParams();
-  const roleParam = searchParams.get("role");
-  const isClient = roleParam === "cliente";
-
-  // Detección de sesión activa incompatible
-  const hasSessionMismatch = user && roleParam && (
-    (roleParam === "cliente" && !["cliente", "cliente_final"].includes(user.role)) ||
-    (roleParam === "profesional" && ["cliente", "cliente_final"].includes(user.role))
-  );
-
-  const theme = {
-    color: isClient ? "indigo" : "emerald",
-    bg: isClient ? "bg-indigo-600" : "bg-emerald-600",
-    hover: isClient ? "hover:bg-indigo-700" : "hover:bg-emerald-700",
-    shadow: isClient ? "shadow-indigo-200" : "shadow-emerald-200",
-    text: isClient ? "text-indigo-600" : "text-emerald-600",
-    title: isClient ? "Portal de Clientes" : "Portal Profesional",
-    desc: isClient 
-      ? "Accede para gestionar tus trámites y comunicarte con tu asesor." 
-      : "Ingresa tus credenciales corporativas para acceder al panel."
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,60 +55,6 @@ function LoginContent() {
     }
   };
 
-  if (hasSessionMismatch) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full"
-        >
-          <Card className="border-2 border-amber-200 shadow-xl overflow-hidden">
-            <div className="bg-amber-500 p-4 flex items-center gap-3 text-white">
-              <Shield className="w-6 h-6" />
-              <h2 className="font-bold">Conflicto de Sesión Detectado</h2>
-            </div>
-            <CardContent className="p-8 space-y-6">
-              <p className="text-slate-600 leading-relaxed text-center">
-                Actualmente tienes una sesión activa como <strong className="text-slate-900 uppercase">{user?.role.replace(/_/g, ' ')}</strong>.
-              </p>
-              <div className="bg-slate-100 p-4 rounded-xl text-center space-y-1">
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Usuario Actual</p>
-                <p className="font-semibold text-slate-800">{user?.displayName || user?.email}</p>
-              </div>
-              <p className="text-sm text-slate-500 text-center italic">
-                Para acceder al {theme.title}, debes cerrar tu sesión actual primero.
-              </p>
-              
-              <div className="flex flex-col gap-3 pt-4">
-                <Button 
-                  onClick={async () => {
-                    await logout();
-                    router.refresh();
-                  }}
-                  className="w-full h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg"
-                >
-                  Cerrar Sesión Activa
-                </Button>
-                <Link href={getDefaultRouteForRole(user?.role)} className="w-full">
-                  <Button variant="ghost" className="w-full text-slate-500 hover:text-slate-900">
-                    Volver a mi Panel
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Si ya tiene sesión y el rol coincide, redirigir directo
-  if (user && !roleParam) {
-    router.replace(getDefaultRouteForRole(user.role));
-    return null;
-  }
-
   return (
     <div className="flex min-h-screen bg-white overflow-hidden">
       {/* Lado Izquierdo: Formulario */}
@@ -150,16 +66,16 @@ function LoginContent() {
         >
           <div className="flex flex-col items-start gap-2">
             <Link href="/" className="flex items-center gap-2 group mb-4">
-               <div className={`${theme.bg} p-2 rounded-xl text-white group-hover:scale-110 transition-transform`}>
+               <div className="bg-emerald-600 p-2 rounded-xl text-white group-hover:scale-110 transition-transform">
                 <Scale className="w-6 h-6" />
                </div>
-               <span className="text-xl font-bold tracking-tight text-slate-900">{theme.title}</span>
+               <span className="text-xl font-bold tracking-tight text-slate-900">Portal 360</span>
             </Link>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
               Bienvenido de nuevo
             </h1>
             <p className="text-slate-500">
-              {theme.desc}
+              Ingresa tus credenciales corporativas para acceder al panel.
             </p>
           </div>
 
@@ -172,18 +88,18 @@ function LoginContent() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="nombre@ejemplo.com"
+                    placeholder="nombre@empresa.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className={`pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all ring-offset-0 focus-visible:ring-${theme.color}-500`}
+                    className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all ring-offset-0 focus-visible:ring-emerald-500"
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Button variant="link" className={`text-xs ${theme.text} px-0 h-auto`}>
+                  <Button variant="link" className="text-xs text-emerald-600 px-0 h-auto">
                     ¿Olvidaste tu contraseña?
                   </Button>
                 </div>
@@ -196,7 +112,7 @@ function LoginContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className={`pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all ring-offset-0 focus-visible:ring-${theme.color}-500`}
+                    className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all ring-offset-0 focus-visible:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -204,7 +120,7 @@ function LoginContent() {
 
             <Button 
               type="submit" 
-              className={`w-full h-12 ${theme.bg} ${theme.hover} text-white font-semibold rounded-xl transition-all shadow-lg ${theme.shadow}`}
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-200"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -221,17 +137,11 @@ function LoginContent() {
             </Button>
           </form>
 
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <p className="text-sm text-slate-500">
-              ¿Eres Profesional?{" "}
+              ¿No tienes una cuenta?{" "}
               <Link href="/planes" className="text-emerald-600 font-bold hover:underline">
-                Contrata un Plan
-              </Link>
-            </p>
-            <p className="text-xs text-slate-400">
-              ¿Eres Cliente?{" "}
-              <Link href="/registro/cliente" className="text-slate-600 font-bold hover:underline">
-                Regístrate como Cliente
+                Regístrate aquí
               </Link>
             </p>
           </div>
@@ -263,29 +173,21 @@ function LoginContent() {
             </div>
             
             <h2 className="text-5xl font-black text-white leading-tight">
-              {isClient ? "Gestión Personal" : "Ecosistema Digital"} <br />
-              <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isClient ? 'from-indigo-400 to-blue-400' : 'from-emerald-400 to-cyan-400'}`}>
-                {isClient ? "Simple y Transparente." : "Legal y Tributario."}
+              Ecosistema Digital <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                Legal y Tributario.
               </span>
             </h2>
             
             <div className="space-y-6">
-              {(isClient 
-                ? [
-                  "Seguimiento de tu causa paso a paso",
-                  "Bóveda digital de documentos segura",
-                  "Comunicación directa con tu profesional",
-                  "Pagos de consultas en línea protegidos"
-                ]
-                : [
-                  "Seguimiento de causas en tiempo real",
-                  "Gestión documental con validez jurídica",
-                  "Cálculos tributarios y reportes ejecutivos",
-                  "Comunicación directa con tu equipo experto"
-                ]
-              ).map((text, i) => (
+              {[
+                "Seguimiento de causas en tiempo real",
+                "Gestión documental con validez jurídica",
+                "Cálculos tributarios y reportes ejecutivos",
+                "Comunicación directa con tu equipo experto"
+              ].map((text, i) => (
                 <div key={i} className="flex items-center gap-3 text-slate-300">
-                  <CheckCircle2 className={`w-5 h-5 ${isClient ? 'text-indigo-500' : 'text-emerald-500'}`} />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                   <span className="text-lg">{text}</span>
                 </div>
               ))}

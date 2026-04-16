@@ -52,7 +52,7 @@ service cloud.firestore {
     }
 
     // ─── Users ────────────────────────────────────────────────────────────────
-
+    
     match /users/{userId} {
       allow read: if isAuth() && (
         request.auth.uid == userId || 
@@ -60,7 +60,11 @@ service cloud.firestore {
         (isFirmMember() && resource.data.tenantId == userTenantId())
       );
       allow create: if isAuth() && request.auth.uid == userId;
-      allow update: if isAuth() && (request.auth.uid == userId || isSosercomAdmin());
+      allow update: if isAuth() && (
+        isSosercomAdmin() || 
+        (request.auth.uid == userId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'email', 'status']))
+      );
       allow delete: if isSuperAdmin();
     }
 

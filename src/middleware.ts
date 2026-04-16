@@ -42,6 +42,11 @@ export function middleware(request: NextRequest) {
   const userRole = request.cookies.get('portal360-role')?.value;
 
   if (session && userRole) {
+    // 0. Super Admin Global tiene acceso total e irrestricto
+    if (userRole === 'super_admin_global') {
+      return NextResponse.next();
+    }
+
     // Protección de rutas de Super Admin
     if (pathname.startsWith('/super-admin') && userRole !== 'super_admin_global') {
       return NextResponse.redirect(new URL('/', request.url));
@@ -63,14 +68,8 @@ export function middleware(request: NextRequest) {
     if (pathname.startsWith('/cliente') && !clientRoles.includes(userRole) && userRole !== 'super_admin_global') {
       return NextResponse.redirect(new URL('/', request.url));
     }
-    
-    // Si ya está logueado y va a login, mandarlo a su dashboard
-    if (pathname === '/login') {
-       if (userRole === 'super_admin_global') return NextResponse.redirect(new URL('/super-admin', request.url));
-       if (userRole === 'admin') return NextResponse.redirect(new URL('/admin', request.url));
-       if (firmRoles.includes(userRole)) return NextResponse.redirect(new URL('/firm', request.url));
-       if (clientRoles.includes(userRole)) return NextResponse.redirect(new URL('/cliente', request.url));
-    }
+    // Rutas protegidas por rol
+    // (Se eliminó la redirección automática de /login para permitir lógica de cambio de sesión en el componente)
   }
 
   return NextResponse.next();

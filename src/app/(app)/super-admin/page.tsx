@@ -15,11 +15,16 @@ import {
   ArrowDownRight,
   ChevronRight,
   Search,
-  Bell
+  Bell,
+  Cpu,
+  LayoutDashboard
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import WeeklyCalendar from "@/components/dashboard/WeeklyCalendar";
+import CockpitFinancials from "@/components/dashboard/CockpitFinancials";
 
 interface StatRecord {
   label: string;
@@ -40,6 +45,7 @@ interface AuditEntry {
 
 export default function SuperAdminPage() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"system" | "operations">("system");
   const [stats, setStats] = useState<StatRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,10 +100,20 @@ export default function SuperAdminPage() {
           limit(6)
         );
         const auditSnap = await getDocs(auditQuery);
-        const logs = auditSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as AuditEntry[];
+        const logs = auditSnap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            action: data.action || data.actionType || "Acción",
+            performedByEmail: data.performedByEmail || data.userId || "Usuario",
+            details: typeof data.details === "string" 
+              ? data.details 
+              : Object.keys(data.details || {}).length > 0 
+                ? JSON.stringify(data.details) 
+                : "Sin detalles adicionales",
+            timestamp: data.timestamp
+          };
+        }) as AuditEntry[];
         setAuditLogs(logs);
 
       } catch (e) {
@@ -113,7 +129,7 @@ export default function SuperAdminPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-10 pb-10">
+    <div className="flex flex-col gap-8 pb-10">
       {/* Top Bar / Welcome */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <motion.div 
@@ -128,24 +144,66 @@ export default function SuperAdminPage() {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sistemas Operativos S.A</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900">Control Room</h1>
-          <p className="text-slate-500 font-medium">Panel de mando central para la infraestructura Portal 360.</p>
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900 leading-none">
+            {activeTab === 'system' ? 'Control Room' : 'Mi Cabina Operativa'}
+          </h1>
+          <p className="text-slate-500 font-medium pt-2">
+            {activeTab === 'system' 
+              ? 'Panel de mando central para la infraestructura Portal 360.' 
+              : 'Gestión personal de causas, agenda y finanzas.'}
+          </p>
         </motion.div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <Button variant="outline" className="h-12 w-12 rounded-2xl p-0 border-slate-200">
-            <Search className="w-5 h-5 text-slate-400" />
-          </Button>
-          <Button variant="outline" className="h-12 w-12 rounded-2xl p-0 border-slate-200 relative">
-            <Bell className="w-5 h-5 text-slate-400" />
-            <span className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-          </Button>
-          <Button className="h-12 px-6 bg-slate-900 hover:bg-slate-800 rounded-2xl gap-3 shadow-xl shadow-slate-200">
-             <TrendingUp className="w-5 h-5" />
-             Reporte Ejecutivo
-          </Button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Tab Selector */}
+          <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1">
+            <button
+              onClick={() => setActiveTab("system")}
+              className={cn(
+                "px-4 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+                activeTab === "system" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-900"
+              )}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Sistemas
+            </button>
+            <button
+              onClick={() => setActiveTab("operations")}
+              className={cn(
+                "px-4 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+                activeTab === "operations" 
+                  ? "bg-slate-900 text-white shadow-xl shadow-slate-900/20" 
+                  : "text-slate-500 hover:text-slate-900"
+              )}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Operaciones
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" className="h-11 w-11 rounded-xl p-0 border-slate-200">
+              <Search className="w-4 h-4 text-slate-400" />
+            </Button>
+            <Button variant="outline" className="h-11 w-11 rounded-xl p-0 border-slate-200 relative">
+              <Bell className="w-4 h-4 text-slate-400" />
+              <span className="absolute top-3 right-3 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white" />
+            </Button>
+          </div>
         </div>
       </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'system' ? (
+          <motion.div
+            key="system"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-10"
+          >
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -257,8 +315,42 @@ export default function SuperAdminPage() {
                  Ver Calendario Tech
               </Button>
            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
+    ) : (
+          <motion.div
+            key="operations"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-8"
+          >
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <div className="xl:col-span-2">
+                <WeeklyCalendar />
+              </div>
+              <div className="space-y-8">
+                <CockpitFinancials />
+                <div className="bg-emerald-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+                  <div className="relative z-10 space-y-4">
+                    <h4 className="text-xl font-black uppercase tracking-tight">Atención Prioritaria</h4>
+                    <p className="text-emerald-100 text-sm font-medium leading-relaxed">
+                      Como Super Admin, tienes visibilidad total de los casos críticos del sistema. Revisa las alertas de clientes con pagos pendientes.
+                    </p>
+                    <Button className="w-full bg-white text-emerald-600 hover:bg-emerald-50 rounded-2xl font-black uppercase tracking-widest text-[10px] h-12">
+                      Ver Alertas Globales
+                    </Button>
+                  </div>
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
+                    <ShieldAlert className="w-24 h-24" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

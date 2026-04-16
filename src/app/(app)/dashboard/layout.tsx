@@ -1,6 +1,6 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+"use client";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { motion } from "framer-motion";
 
 export default function DashboardLayout({
   children,
@@ -9,19 +9,13 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute allowedRoles={["cliente"]}>
-      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-black">
-        {/* Desktop Sidebar */}
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            {children}
-          </main>
-        </div>
-      </div>
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="w-full h-full"
+      >
+        {children}
+      </motion.div>
     </ProtectedRoute>
   );
 }

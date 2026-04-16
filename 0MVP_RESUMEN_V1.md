@@ -53,11 +53,21 @@ El portal está blindado con Role-Based Access Control (RBAC). El menú lateral 
 | `/super-admin/auditoria` | Integrado REAL con `audit_logs` en Firebase; ve quién entra, qué visualiza y qué edita de forma inmutable. |
 | `/super-admin/finanzas` | Proyección de facturación global P&L. |
 
-## 4. Estado Actual para el "Go-live"
+## 4. Estado Actual para el "Go-live" (Día 3 Finalizado)
 
-Todo el front-end ha sido compilado como estático (`output: export`) usando la versión Next.js 15 y distribuido a los nodos de Google mediante `firebase deploy`.
-Se rectificó la regla interna de **CleanUrls** posibilitando un salto libre a cada pantalla en el navegador sin problemas técnicos, dejando en tus manos las 18 pantallas de arquitectura sólidas.
+Todo el front-end ha sido compilado como estático (`output: export`) usando la versión Next.js 15 y distribuido a los nodos de Google mediante `firebase deploy`. 
 
-### Próxima Fase (Fase 2 Comercial)
-1. Conectar tu panel Super Admin / Admin para que en lugar de usar comandos para poblar base de datos, exista un panel de control con base de datos React (CRUD Formulario) que cree usuarios y companies directo.
-2. Hacer dinámicas las tablas actualmente "UI-mockups" para interactuar sobre Firestore bidireccionalmente.
+### Hitos de Estabilización (Día 3):
+- **Seguridad Firestore:** Implementación de blindaje contra escalada de privilegios y protección de campos sensibles (`role`, `tenantId`).
+- **Eliminación de 404s:** El 100% de las rutas del sidebar ahora tienen una página funcional y premium.
+- **Módulos Premium Activados:**
+    - **LawVault™:** Repositorio documental avanzado con control de estados.
+    - **ClientHub™:** CRM especializado para carteras de clientes legales/contables.
+    - **JusticeTickets™:** Centro de ayuda y soporte con priorización de casos.
+    - **BillingCenter™:** Gestión de suscripciones e integración visual de Mercado Pago.
+
+### Próxima Fase (Sprint 0MVP Finalización)
+1. **Plan Blaze:** Imprescindible escalar el proyecto Firebase a Plan Blaze para soportar Next.js SSR y APIs dinámicas.
+2. **Integración Drive:** Migrar el almacenamiento de documentos a Google Drive API para escalabilidad.
+3. **Credenciales Reales:** Sustituir los placeholders de Mercado Pago y Resend por claves de producción/sandbox.
+4. **Flujo de Onboarding:** Finalizar el registro, firma de contratos y validación de antecedentes.

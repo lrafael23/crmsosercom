@@ -196,27 +196,10 @@ export default function AgendarClientePage() {
 
         setStep("success");
       } else {
-        // 2. Crear Preferencia de Mercado Pago
-        const res = await fetch("/api/mp/consultation", {
-          method: "POST",
-          body: JSON.stringify({
-            userId: user.uid,
-            lawyerId,
-            appointmentId,
-            price: CONSULTATION_PRICE
-          })
-        });
-
-        if (!res.ok) throw new Error("Error creando preferencia de pago");
-        
-        const { preferenceId } = await res.json();
-        const isSimulated = preferenceId === "SIMULATED_CONSULTATION_PREF";
-        
-        if (isSimulated) {
-          setStep("success");
-        } else {
-          window.location.href = `https://www.mercadopago.cl/checkout/v1/redirect?pref_id=${preferenceId}`;
-        }
+        // Opción de Pago Directo (MVP)
+        // Redirigir directamente al link de Mercado Pago configurado por el administrador
+        const consultationLink = process.env.NEXT_PUBLIC_MP_CONSULTATION_LINK || "https://mpago.li/176sWLM";
+        window.location.href = consultationLink;
       }
 
     } catch (err) {

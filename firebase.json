@@ -7,6 +7,15 @@
   },
   "hosting": {
     "source": ".",
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "ssrsosercomcb383",
+          "region": "us-central1"
+        }
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
