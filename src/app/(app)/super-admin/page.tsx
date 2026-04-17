@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, limit, getDocs, getCountFromServer } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { collection, query, orderBy, limit, getDocs, getCountFromServer, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { 
@@ -44,7 +45,8 @@ interface AuditEntry {
 }
 
 export default function SuperAdminPage() {
-  const { user } = useAuth();
+  const { user, impersonate } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"system" | "operations">("system");
   const [stats, setStats] = useState<StatRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
@@ -127,6 +129,23 @@ export default function SuperAdminPage() {
   }, []);
 
   if (!user) return null;
+
+  const openDemoAs = async (email: string, path: string) => {
+    const userQuery = query(collection(db, "users"), where("email", "==", email), limit(1));
+    const snap = await getDocs(userQuery);
+    if (!snap.empty) {
+      await impersonate(snap.docs[0].id);
+      router.push(path);
+    }
+  };
+
+  const openDemoSchedule = async () => {
+    const lawyerQuery = query(collection(db, "users"), where("email", "==", "lawyer.0mvp@sosercom.cl"), limit(1));
+    const lawyerSnap = await getDocs(lawyerQuery);
+    if (!lawyerSnap.empty) {
+      await openDemoAs("cliente.0mvp@sosercom.cl", `/cliente/agendar/${lawyerSnap.docs[0].id}`);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8 pb-10">
@@ -326,6 +345,38 @@ export default function SuperAdminPage() {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-8"
           >
+            <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <Badge className="mb-3 border-none bg-emerald-600 text-white">0MVP TEST LAB</Badge>
+                  <h2 className="text-2xl font-black text-slate-900">Flujos habilitados sin pago</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-600">
+                    Usa estos accesos para probar clientes, causas, documentos y videollamadas con datos demo reales.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Button
+                    onClick={() => openDemoAs("lawyer.0mvp@sosercom.cl", "/firm")}
+                    className="h-12 rounded-2xl bg-slate-900 px-5 text-xs font-black uppercase tracking-widest text-white"
+                  >
+                    Probar Estudio
+                  </Button>
+                  <Button
+                    onClick={() => openDemoAs("lawyer.0mvp@sosercom.cl", "/firm/clientes")}
+                    className="h-12 rounded-2xl bg-emerald-600 px-5 text-xs font-black uppercase tracking-widest text-white"
+                  >
+                    Crear Cliente
+                  </Button>
+                  <Button
+                    onClick={openDemoSchedule}
+                    className="h-12 rounded-2xl bg-indigo-600 px-5 text-xs font-black uppercase tracking-widest text-white"
+                  >
+                    Agendar Meet
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               <div className="xl:col-span-2">
                 <WeeklyCalendar />

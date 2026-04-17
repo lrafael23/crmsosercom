@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
 import CaseTimeline, { generateDemoTimeline } from "@/components/cases/CaseTimeline";
@@ -59,7 +59,6 @@ export default function ClientePortalPage() {
         const casesQ = query(
           collection(db, "cases"),
           where("clientId", "==", user!.uid),
-          orderBy("createdAt", "desc"),
           limit(10)
         );
         const casesSnap = await getDocs(casesQ);
@@ -67,6 +66,7 @@ export default function ClientePortalPage() {
           id: d.id,
           ...d.data(),
         })) as ClientCase[];
+        casesData.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
         
         setCases(casesData);
         if (casesData.length > 0) setSelectedCaseId(casesData[0].id);
@@ -74,11 +74,12 @@ export default function ClientePortalPage() {
         const aptsQ = query(
           collection(db, "appointments"),
           where("clientId", "==", user!.uid),
-          orderBy("fecha", "asc"),
           limit(5)
         );
         const aptsSnap = await getDocs(aptsQ);
-        setAppointments(aptsSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as ClientAppointment[]);
+        const appointmentsData = aptsSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as ClientAppointment[];
+        appointmentsData.sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+        setAppointments(appointmentsData);
       } catch (err) {
         console.error("Error cargando dashboard cliente:", err);
       } finally {

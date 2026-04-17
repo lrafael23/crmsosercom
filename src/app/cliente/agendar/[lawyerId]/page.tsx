@@ -35,6 +35,26 @@ import { generateSlots, filterAvailableSlots, DEFAULT_AVAILABILITY } from "@/lib
 const CONSULTATION_PRICE = 25000;
 const DEFAULT_MEET_LINK =
   process.env.NEXT_PUBLIC_DEFAULT_MEET_LINK || "https://meet.google.com/nyz-vuxh-xmu";
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+function getAvailabilityKey(date: Date) {
+  return DAY_KEYS[date.getDay()];
+}
+
+function getNextBookableDate(availability: any) {
+  for (let offset = 1; offset <= 30; offset++) {
+    const candidate = addDays(new Date(), offset);
+    const dayConfig = availability?.[getAvailabilityKey(candidate)];
+    if (dayConfig?.enabled && dayConfig.slots?.length) return candidate;
+  }
+  return addDays(new Date(), 1);
+}
+
+function toDateValue(value: any): Date {
+  if (value?.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+  return new Date(value);
+}
 
 export default function AgendarClientePage() {
   const { lawyerId } = useParams();
@@ -68,7 +88,9 @@ export default function AgendarClientePage() {
 
         const settingsRef = doc(db, "lawyer_settings", lawyerId as string);
         const sSnap = await getDoc(settingsRef);
-        setAvailability(sSnap.exists() ? sSnap.data().availability : DEFAULT_AVAILABILITY);
+        const nextAvailability = sSnap.exists() ? sSnap.data().availability : DEFAULT_AVAILABILITY;
+        setAvailability(nextAvailability);
+        setSelectedDate(getNextBookableDate(nextAvailability));
 
         if (lawyerData?.tenantId) {
           // 1. Verificar si es cliente existente
@@ -120,10 +142,7 @@ export default function AgendarClientePage() {
     if (!availability || !selectedDate) return;
 
     async function calculateSlots() {
-      const dayKey = format(selectedDate, "eee", { locale: es }).toLowerCase().substring(0, 3)
-        .replace("mié", "wed").replace("jue", "thu").replace("vie", "fri")
-        .replace("sáb", "sat").replace("dom", "sun").replace("lun", "mon").replace("mar", "tue");
-      
+      const dayKey = getAvailabilityKey(selectedDate);
       const dayConfig = availability[dayKey];
       if (!dayConfig || !dayConfig.enabled) {
         setAvailableSlots([]);
@@ -136,17 +155,20 @@ export default function AgendarClientePage() {
       );
 
       // Fetch citas existentes para este abogado en este día
-      const q = query(
-        collection(db, "appointments"),
-        where("lawyerId", "==", lawyerId),
-        where("start", ">=", startOfDay(selectedDate)),
-        where("start", "<", addDays(startOfDay(selectedDate), 1))
-      );
-      const snap = await getDocs(q);
-      const existing = snap.docs.map(d => ({
-        date: d.data().start.toDate(),
-        time: format(d.data().start.toDate(), "HH:mm")
-      }));
+      let existing: { date: Date; time: string }[] = [];
+      try {
+        const q = query(collection(db, "appointments"), where("lawyerId", "==", lawyerId));
+        const snap = await getDocs(q);
+        existing = snap.docs
+          .map((d) => {
+            const date = toDateValue(d.data().start);
+            return { date, time: format(date, "HH:mm") };
+          })
+          .filter((item) => isSameDay(item.date, selectedDate));
+      } catch {
+        // Si el cliente no tiene permisos para leer citas de terceros, igual mostramos disponibilidad base.
+        existing = [];
+      }
 
       const filtered = filterAvailableSlots(selectedDate, allPossible, existing);
       setAvailableSlots(filtered);

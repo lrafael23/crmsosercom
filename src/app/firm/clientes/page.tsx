@@ -27,7 +27,6 @@ import {
   query, 
   where, 
   onSnapshot, 
-  orderBy, 
   addDoc, 
   deleteDoc, 
   doc, 
@@ -68,12 +67,12 @@ export default function ClientHubPage() {
 
     const q = query(
       collection(db, "clients"),
-      where("tenantId", "==", user.tenantId),
-      orderBy("createdAt", "desc")
+      where("tenantId", "==", user.tenantId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      docs.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
       setClients(docs);
       setLoading(false);
     });

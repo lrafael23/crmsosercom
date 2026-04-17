@@ -52,7 +52,7 @@ export default function NewCasePage() {
     clientId: "",
     category: "Judicial",
     description: "",
-    status: "activo",
+    status: "active",
     stage: "intake"
   });
 
@@ -105,11 +105,11 @@ export default function NewCasePage() {
         updatedAt: serverTimestamp()
       });
 
-      // 3. Update tenant usage (optional but recommended)
+      // 3. Update tenant usage best-effort; no bloquea la creacion de la causa.
       await updateDoc(doc(db, "tenants", user.tenantId), {
         activeCases: increment(1),
         updatedAt: serverTimestamp()
-      });
+      }).catch(() => null);
 
       toast.success("Causa judicial creada con éxito");
       router.push(`/firm/causas/${caseRef.id}`);

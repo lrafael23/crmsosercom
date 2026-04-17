@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -27,12 +27,13 @@ export default function CasesPage() {
 
     const q = query(
       collection(db, "cases"),
-      where("tenantId", "==", user.tenantId),
-      orderBy("createdAt", "desc")
+      where("tenantId", "==", user.tenantId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setCases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      docs.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setCases(docs);
       setLoading(false);
     }, (err) => {
       console.error(err);
