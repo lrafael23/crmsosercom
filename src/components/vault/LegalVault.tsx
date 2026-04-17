@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { db, storage } from "@/lib/firebase/client";
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 interface VaultFile {
   id: string;
@@ -31,6 +34,13 @@ interface VaultFile {
   webViewLink: string;
   webContentLink: string;
   createdAt: string;
+  storagePath?: string;
+}
+
+interface CaseMetadata {
+  caseId: string;
+  tenantId: string | null;
+  clientId: string | null;
 }
 
 export default function LegalVault({ caseId }: { caseId: string }) {
@@ -39,12 +49,32 @@ export default function LegalVault({ caseId }: { caseId: string }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [caseMetadata, setCaseMetadata] = useState<CaseMetadata | null>(null);
+
+  const resolveCaseMetadata = async (): Promise<CaseMetadata> => {
+    if (caseMetadata?.caseId === caseId) return caseMetadata;
+
+    const caseSnap = await getDoc(doc(db, "cases", caseId));
+    const data = caseSnap.exists() ? caseSnap.data() : {};
+    const metadata = {
+      caseId,
+      tenantId: typeof data.tenantId === "string" ? data.tenantId : null,
+      clientId: typeof data.clientId === "string" ? data.clientId : null,
+    };
+
+    setCaseMetadata(metadata);
+    return metadata;
+  };
 
   const loadFiles = async () => {
     try {
-      const res = await fetch(`/api/vault/list?caseId=${caseId}`);
-      const data = await res.json();
-      if (data.documents) setFiles(data.documents);
+      await resolveCaseMetadata();
+      const q = query(collection(db, "case_documents"), where("caseId", "==", caseId));
+      const snap = await getDocs(q);
+      const documents = snap.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as VaultFile)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setFiles(documents);
     } catch (err) {
       console.error("Error loading vault:", err);
     } finally {
@@ -61,24 +91,41 @@ export default function LegalVault({ caseId }: { caseId: string }) {
     if (!file || !user) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("caseId", caseId);
-    formData.append("userId", user.uid);
 
     try {
-      const res = await fetch("/api/vault/upload", {
-        method: "POST",
-        body: formData,
+      const metadata = await resolveCaseMetadata();
+      const tenantId = metadata.tenantId ?? user.tenantId ?? user.uid;
+      const clientId =
+        metadata.clientId ?? (user.role === "cliente_final" || user.role === "cliente" ? user.uid : null);
+      const safeName = file.name.replace(/[^\w.\-() ]+/g, "_");
+      const storagePath = `vault/${tenantId}/${caseId}/${Date.now()}-${safeName}`;
+      const storageRef = ref(storage, storagePath);
+
+      await uploadBytes(storageRef, file, {
+        contentType: file.type || "application/octet-stream",
       });
-      if (res.ok) {
-        await loadFiles();
-      } else {
-        const error = await res.json();
-        alert(`Error: ${error.error}`);
-      }
+
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "case_documents"), {
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        caseId,
+        tenantId,
+        clientId,
+        uploadedBy: user.uid,
+        storagePath,
+        webViewLink: downloadUrl,
+        webContentLink: downloadUrl,
+        createdAt: new Date().toISOString(),
+        createdAtServer: serverTimestamp(),
+      });
+
+      await loadFiles();
     } catch (err) {
       console.error(err);
+      alert("No se pudo subir el documento. Verifica tu sesion e intenta nuevamente.");
     } finally {
       setUploading(false);
     }
@@ -115,8 +162,8 @@ export default function LegalVault({ caseId }: { caseId: string }) {
             <ShieldCheck className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-             <h4 className="text-white font-black tracking-tight leading-tight">Bóveda Cifrada (Drive)</h4>
-             <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-0.5">Estado: Seguro</p>
+             <h4 className="text-white font-black tracking-tight leading-tight">Boveda Digital</h4>
+             <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-0.5">Firebase Storage activo</p>
           </div>
         </div>
 
@@ -197,7 +244,7 @@ export default function LegalVault({ caseId }: { caseId: string }) {
                         href={file.webViewLink} 
                         target="_blank" 
                         className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors"
-                        title="Ver en Drive"
+                        title="Ver documento"
                        >
                          <ExternalLink className="w-4 h-4" />
                        </a>

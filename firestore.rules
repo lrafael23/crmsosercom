@@ -225,6 +225,30 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
     }
 
+    match /case_documents/{docId} {
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && (
+          resource.data.clientId == request.auth.uid ||
+          resource.data.uploadedBy == request.auth.uid
+        ))
+      );
+      allow create: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && request.resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() &&
+          request.resource.data.uploadedBy == request.auth.uid &&
+          request.resource.data.clientId == request.auth.uid
+        )
+      );
+      allow update: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId())
+      );
+      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+    }
+
     // ─── Appointments ─────────────────────────────────────────────────────────
 
     match /appointments/{aptId} {
@@ -233,7 +257,11 @@ service cloud.firestore {
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         (isClientFinal() && resource.data.clientId == request.auth.uid)
       );
-      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow create: if isActive() && (
+        isFirmMember() ||
+        isSuperAdmin() ||
+        (isClientFinal() && request.resource.data.clientId == request.auth.uid)
+      );
       allow update: if isActive() && (isFirmMember() || isSuperAdmin());
       allow delete: if isSuperAdmin() || (isFirmMember() && resource.data.tenantId == userTenantId());
     }

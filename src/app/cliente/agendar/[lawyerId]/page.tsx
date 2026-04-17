@@ -33,6 +33,8 @@ import { generateSlots, filterAvailableSlots, DEFAULT_AVAILABILITY } from "@/lib
 
 // ─── Configuración ─────────────────────────────────────────────────────────────
 const CONSULTATION_PRICE = 25000;
+const DEFAULT_MEET_LINK =
+  process.env.NEXT_PUBLIC_DEFAULT_MEET_LINK || "https://meet.google.com/nyz-vuxh-xmu";
 
 export default function AgendarClientePage() {
   const { lawyerId } = useParams();
@@ -174,6 +176,8 @@ export default function AgendarClientePage() {
         status: isExistingClient ? "confirmed" : "pending_payment", 
         type: "meeting",
         source: "local",
+        location: DEFAULT_MEET_LINK,
+        meetingUrl: DEFAULT_MEET_LINK,
         createdAt: new Date(),
         needsReminder: true,
         reminderSent: false
@@ -183,17 +187,6 @@ export default function AgendarClientePage() {
       const appointmentId = docRef.id;
 
       if (isExistingClient) {
-        // Para clientes existentes, validamos cuota e incrementamos uso
-        const confirmRes = await fetch("/api/appointments/confirm-free", {
-          method: "POST",
-          body: JSON.stringify({ tenantId: lawyer.tenantId, appointmentId })
-        });
-
-        if (!confirmRes.ok) {
-          const errData = await confirmRes.json();
-          throw new Error(errData.error || "No se pudo confirmar la cita (posible límite de cuota)");
-        }
-
         setStep("success");
       } else {
         const paymentRes = await fetch("/api/mp/consultation", {
@@ -415,8 +408,16 @@ export default function AgendarClientePage() {
                  <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4">¡Cita Confirmada!</h2>
                  <p className="text-slate-500 dark:text-slate-400 font-medium mb-10 px-10">
                    Hemos reservado tu espacio para el <span className="font-black text-slate-900 dark:text-white">{format(selectedDate, "d 'de' MMMM", { locale: es })}</span> a las <span className="font-black text-slate-900 dark:text-white">{selectedSlot}</span>. 
-                   Recibirás un link de Google Meet por correo.
+                   Usaremos el enlace seguro de Google Meet de Sosercom.
                  </p>
+                 <a
+                  href={DEFAULT_MEET_LINK}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mb-5 px-8 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest"
+                 >
+                   Abrir Google Meet
+                 </a>
                  <button 
                   onClick={() => router.push("/cliente")}
                   className="px-10 py-4 bg-slate-900 dark:bg-slate-800 text-white font-black rounded-2xl shadow-xl"
