@@ -12,9 +12,13 @@ export async function POST(request: NextRequest) {
 
     const accessToken = process.env.MP_ACCESS_TOKEN;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
+    const fallbackLink = process.env.MP_CONSULTATION_LINK;
 
     if (!accessToken || accessToken === "TEST-REPLACE-WITH-YOUR-ACCESS-TOKEN") {
-      return NextResponse.json({ preferenceId: "SIMULATED_CONSULTATION_PREF" });
+      return NextResponse.json({
+        preferenceId: "SIMULATED_CONSULTATION_PREF",
+        initPoint: fallbackLink ?? null,
+      });
     }
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -55,7 +59,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await mpResponse.json();
-    return NextResponse.json({ preferenceId: data.id });
+    return NextResponse.json({
+      preferenceId: data.id,
+      initPoint: data.init_point ?? data.sandbox_init_point ?? null,
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

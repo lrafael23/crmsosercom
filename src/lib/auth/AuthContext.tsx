@@ -52,6 +52,8 @@ export interface AppUser {
   // Trazabilidad
   createdBy?: string | null;
   validatedBy?: string | null;
+  powers?: string[];
+  category?: string | null;
 }
 
 interface AuthContextType {
@@ -190,6 +192,8 @@ async function getAppUser(
     subscriptionStatus: data.subscriptionStatus ?? null,
     createdBy: ensureString(data.createdBy),
     validatedBy: ensureString(data.validatedBy),
+    powers: Array.isArray(data.powers) ? data.powers : [],
+    category: ensureString(data.category),
   };
 }
 
@@ -269,6 +273,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           department: ensureString(data.department),
           planId: ensureString(data.planId),
           subscriptionStatus: data.subscriptionStatus ?? null,
+          powers: Array.isArray(data.powers) ? data.powers : [],
+          category: ensureString(data.category),
         };
         setUser(targetUser);
         

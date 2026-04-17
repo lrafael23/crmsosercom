@@ -196,10 +196,29 @@ export default function AgendarClientePage() {
 
         setStep("success");
       } else {
-        // Opción de Pago Directo (MVP)
-        // Redirigir directamente al link de Mercado Pago configurado por el administrador
-        const consultationLink = process.env.NEXT_PUBLIC_MP_CONSULTATION_LINK || "https://mpago.li/176sWLM";
-        window.location.href = consultationLink;
+        const paymentRes = await fetch("/api/mp/consultation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.uid,
+            lawyerId,
+            appointmentId,
+            price: CONSULTATION_PRICE,
+          }),
+        });
+
+        if (!paymentRes.ok) {
+          const errData = await paymentRes.json();
+          throw new Error(errData.error || "No se pudo crear el pago de la consulta");
+        }
+
+        const paymentData = await paymentRes.json();
+        if (paymentData.initPoint) {
+          window.location.href = paymentData.initPoint;
+          return;
+        }
+
+        setStep("success");
       }
 
     } catch (err) {

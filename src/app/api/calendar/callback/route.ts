@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTokensFromCode } from "@/lib/google";
 import { setFirestoreDocREST } from "@/lib/firebase/rest";
 
+export const runtime = "nodejs";
+
 /**
  * GET /api/calendar/callback?code=...&state=...
  * 
@@ -24,8 +26,10 @@ export async function GET(req: NextRequest) {
     const tokens = await getTokensFromCode(code);
 
     // 2. Persistir tokens en Firestore (REST)
-    // Guardamos el objeto tokens (que contiene access_token, refresh_token, etc)
-    await setFirestoreDocREST("user_credentials", `${userId}/google_calendar`, tokens);
+    await setFirestoreDocREST("user_credentials", userId, {
+      googleCalendar: tokens,
+      updatedAt: new Date().toISOString(),
+    });
 
     // 3. Redirigir a la agenda con éxito
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";

@@ -111,11 +111,11 @@ export default function WeeklyCalendar({ tenantId: propTenantId }: { tenantId?: 
         </div>
         
         <Dialog>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 gap-2">
               Ver Mes <ExternalLink className="w-3 h-3" />
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white dark:bg-slate-950 border-white/10">
             <MonthlyCalendarView events={events} />
           </DialogContent>

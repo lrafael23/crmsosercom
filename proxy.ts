@@ -80,7 +80,9 @@ export default async function proxy(req: NextRequest) {
   // Solo verificamos si hay una cookie de sesión para redirigir a /login.
 
   const firebaseSession = req.cookies.get("__session")?.value;
-  const appSession = req.cookies.get("portal360_session")?.value;
+  const appSession =
+    req.cookies.get("portal360-session")?.value ??
+    req.cookies.get("portal360_session")?.value;
 
   const hasSession = !!firebaseSession || !!appSession;
 

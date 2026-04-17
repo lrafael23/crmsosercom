@@ -33,7 +33,6 @@ import {
   eachDayOfInterval 
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { getAuthUrl } from "@/lib/google";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { db } from "@/lib/firebase/client";
 import { 
@@ -76,10 +75,10 @@ export default function AgendaPage() {
     // 1. Verificar conexión a Google y sincronizar
     const syncGoogle = async () => {
       try {
-        const docRef = doc(db, "user_credentials", `${user.uid}/google_calendar`);
+        const docRef = doc(db, "user_credentials", user.uid);
         const snap = await getDoc(docRef);
         
-        if (snap.exists()) {
+        if (snap.exists() && snap.data().googleCalendar) {
           setIsGoogleConnected(true);
           setSyncing(true);
           

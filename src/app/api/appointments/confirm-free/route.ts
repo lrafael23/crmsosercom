@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase/client";
-import { doc, getDoc } from "firebase/firestore";
-import { assertCanAddConference, incrementMonthlyConferences } from "@/lib/billing";
+import { getFirestoreDocREST, setFirestoreDocREST } from "@/lib/firebase/rest";
+import { PLANS, type PlanId } from "@/lib/plans";
+
+export const runtime = "nodejs";
 
 /**
  * POST /api/appointments/confirm-free
- * 
- * Confirma una cita para un cliente con servicio activo (Gratis).
+ *
+ * Confirma una cita incluida en el plan activo del tenant.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -16,19 +17,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
     }
 
-    // 1. Validar cuota
-    await assertCanAddConference(tenantId);
+    const usage = await getFirestoreDocREST<{
+      tenantId: string;
+      planId: PlanId;
+      activeCases?: number;
+      activeSeats?: number;
+      extraSeats?: number;
+      monthlyConferences?: number;
+    }>("tenant_plan_usage", tenantId);
 
-    // 2. Incrementar uso
-    await incrementMonthlyConferences(tenantId);
+    if (!usage?.planId || !PLANS[usage.planId]) {
+      return NextResponse.json({ error: "Tenant sin plan inicializado" }, { status: 403 });
+    }
 
-    // Nota: El status ya se pone en 'confirmed' en el frontend por 0MVP, 
-    // pero aquí validamos que sea legal según el plan.
+    const current = Number(usage.monthlyConferences ?? 0);
+    const max = PLANS[usage.planId].maxMonthlyConferences;
+
+    if (max !== null && current >= max) {
+      return NextResponse.json(
+        { error: `Limite de conferencias mensuales alcanzado (${max}).` },
+        { status: 403 }
+      );
+    }
+
+    await setFirestoreDocREST("tenant_plan_usage", tenantId, {
+      ...usage,
+      monthlyConferences: current + 1,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await setFirestoreDocREST("appointments", appointmentId, {
+      status: "confirmed",
+      updatedAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error("[ConfirmFree] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

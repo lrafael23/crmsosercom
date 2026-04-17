@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -25,23 +25,21 @@ export default function CasesPage() {
   useEffect(() => {
     if (!user?.tenantId) return;
 
-    const loadCases = async () => {
-      try {
-        const q = query(
-          collection(db, "cases"),
-          where("tenantId", "==", user.tenantId),
-          orderBy("createdAt", "desc")
-        );
-        const snap = await getDocs(q);
-        setCases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const q = query(
+      collection(db, "cases"),
+      where("tenantId", "==", user.tenantId),
+      orderBy("createdAt", "desc")
+    );
 
-    loadCases();
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setCases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const filteredCases = cases.filter(c => 
@@ -126,7 +124,7 @@ export default function CasesPage() {
               <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Actualizado hace 2h</span>
+                  <span>{c.updatedAt ? "Reciente" : "Nueva"}</span>
                 </div>
                 <Link 
                   href={`/firm/causas/${c.id}`}

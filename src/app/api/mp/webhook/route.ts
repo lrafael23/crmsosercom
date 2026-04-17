@@ -14,6 +14,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
+
+export const runtime = "nodejs";
 
 // ─── Firestore REST API Helper ─────────────────────────────────────────────────
 
@@ -90,7 +93,10 @@ async function firestorePatch(
     }
   }
 
-  const url = `${FIRESTORE_BASE}/${collection}/${docId}`;
+  const updateMask = Object.keys(data)
+    .map((key) => `updateMask.fieldPaths=${encodeURIComponent(key)}`)
+    .join("&");
+  const url = `${FIRESTORE_BASE}/${collection}/${docId}${updateMask ? `?${updateMask}` : ""}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -124,6 +130,40 @@ interface MpNotification {
   data: { id: string };
   external_reference?: string;
   metadata?: Record<string, string>;
+}
+
+function verifyMercadoPagoSignature(request: NextRequest, dataId: string): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret || secret.includes("REPLACE") || secret.includes("YOUR")) return true;
+
+  const xSignature = request.headers.get("x-signature");
+  const xRequestId = request.headers.get("x-request-id");
+  if (!xSignature || !xRequestId || !dataId) return false;
+
+  const parts = Object.fromEntries(
+    xSignature.split(",").map((part) => {
+      const [key, value] = part.trim().split("=");
+      return [key, value];
+    })
+  );
+
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+  try {
+    const expectedBuffer = Buffer.from(expected, "hex");
+    const receivedBuffer = Buffer.from(v1, "hex");
+
+    return (
+      expectedBuffer.length === receivedBuffer.length &&
+      timingSafeEqual(expectedBuffer, receivedBuffer)
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ─── Procesadores ─────────────────────────────────────────────────────────────
@@ -300,6 +340,10 @@ export async function POST(request: NextRequest) {
 
     if (!type || !data?.id) {
       return NextResponse.json({ received: true });
+    }
+
+    if (!verifyMercadoPagoSignature(request, data.id)) {
+      return NextResponse.json({ error: "Firma invalida." }, { status: 401 });
     }
 
     // Procesamiento asíncrono sin bloquear la respuesta

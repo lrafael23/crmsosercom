@@ -40,7 +40,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// ... [rest of the types] ...
+interface Transaction {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  description: string;
+  date: Date;
+  status: "paid" | "pending" | "late";
+  client?: string;
+  invoiceNum?: string;
+  invoiceType?: string;
+}
 
 export default function CockpitFinancials({ tenantId: propTenantId }: { tenantId?: string }) {
   const { user } = useAuth();
@@ -94,11 +104,11 @@ export default function CockpitFinancials({ tenantId: propTenantId }: { tenantId
         </div>
         
         <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white gap-2 rounded-xl">
               <Plus className="w-3 h-3" /> Facturar
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="max-w-2xl bg-white dark:bg-slate-950">
              <CreateInvoiceView 
                tenantId={activeTenantId!}

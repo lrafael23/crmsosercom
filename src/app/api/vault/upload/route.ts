@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { addFirestoreDocREST, getFirestoreDocREST } from "@/lib/firebase/rest";
 import { 
   getAuthorizedClient, 
   findOrCreateFolder, 
   uploadFileToDrive 
 } from "@/lib/google";
+
+export const runtime = "nodejs";
 
 /**
  * POST /api/vault/upload
@@ -24,15 +25,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Obtener tokens del abogado
-    const credRef = doc(db, "user_credentials", `${userId}/google_calendar`);
-    const credSnap = await getDoc(credRef);
+    const credentials = await getFirestoreDocREST<{ googleCalendar?: unknown }>(
+      "user_credentials",
+      userId
+    );
 
-    if (!credSnap.exists()) {
+    if (!credentials?.googleCalendar) {
       return NextResponse.json({ error: "Google Drive no conectado. Por favor, conecta tu cuenta." }, { status: 401 });
     }
 
-    const tokens = credSnap.data();
-    const auth = getAuthorizedClient(tokens);
+    const auth = getAuthorizedClient(credentials.googleCalendar);
 
     // 2. Estructura de Carpetas en Drive
     // Root: Portal360
@@ -65,11 +67,11 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString()
     };
 
-    const docRef = await addDoc(collection(db, "case_documents"), docMeta);
+    const docId = await addFirestoreDocREST("case_documents", docMeta);
 
     return NextResponse.json({ 
       success: true, 
-      id: docRef.id,
+      id: docId,
       driveId: driveFile.id,
       url: driveFile.webViewLink 
     });

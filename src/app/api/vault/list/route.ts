@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { queryFirestoreEqualsREST } from "@/lib/firebase/rest";
+
+export const runtime = "nodejs";
 
 /**
  * GET /api/vault/list?caseId=...
@@ -16,17 +17,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "caseId es requerido" }, { status: 400 });
     }
 
-    const q = query(
-      collection(db, "case_documents"),
-      where("caseId", "==", caseId),
-      orderBy("createdAt", "desc")
+    const documents = await queryFirestoreEqualsREST(
+      "case_documents",
+      "caseId",
+      caseId,
+      { field: "createdAt", direction: "DESCENDING" }
     );
-
-    const snap = await getDocs(q);
-    const documents = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
 
     return NextResponse.json({ documents });
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, increment } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/firebase/client";
 import { 
@@ -14,10 +14,27 @@ import {
   Calendar,
   Shield,
   LayoutGrid,
-  History
+  History,
+  Trash2,
+  Edit2,
+  Loader2
 } from "lucide-react";
 import LegalVault from "@/components/vault/LegalVault";
 import CaseTimeline from "@/components/cases/CaseTimeline";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CaseDetailPage() {
   const { id } = useParams();
@@ -25,13 +42,28 @@ export default function CaseDetailPage() {
   const [caseData, setCaseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"info" | "vault" | "timeline">("vault");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    status: ""
+  });
 
   useEffect(() => {
     if (!id) return;
     const loadCase = async () => {
       try {
         const snap = await getDoc(doc(db, "cases", id as string));
-        if (snap.exists()) setCaseData({ id: snap.id, ...snap.data() });
+        if (snap.exists()) {
+          const data = snap.data();
+          setCaseData({ id: snap.id, ...data });
+          setEditForm({
+            title: data.title || "",
+            description: data.description || "",
+            status: data.status || "activo"
+          });
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -40,6 +72,53 @@ export default function CaseDetailPage() {
     };
     loadCase();
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!confirm("¿Estás seguro de eliminar este expediente? Esta acción no se puede deshacer.")) return;
+    try {
+      // Decrement tenant case count
+      if (caseData?.tenantId) {
+        await updateDoc(doc(db, "tenants", caseData.tenantId), {
+          activeCases: increment(-1),
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      // Decrement client case count
+      if (caseData?.clientId) {
+        await updateDoc(doc(db, "clients", caseData.clientId), {
+          cases: increment(-1),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      await deleteDoc(doc(db, "cases", id as string));
+      toast.success("Expediente eliminado correctamente");
+      router.push("/firm/causas");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al eliminar la causa");
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await updateDoc(doc(db, "cases", id as string), {
+        ...editForm,
+        updatedAt: serverTimestamp()
+      });
+      setCaseData({ ...caseData, ...editForm });
+      setIsEditOpen(false);
+      toast.success("Expediente actualizado");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al actualizar");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex h-[60vh] items-center justify-center">
@@ -82,12 +161,64 @@ export default function CaseDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
-           <div className="px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500">
+           <div className="hidden sm:block px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500">
               ID: {caseData.id.slice(-6).toUpperCase()}
            </div>
-           <div className="px-5 py-2.5 bg-emerald-500 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-widest">
-              {caseData.status?.replace('_', ' ') || 'ACTIVO'}
-           </div>
+           
+           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+             <DialogTrigger render={
+               <Button variant="outline" className="rounded-2xl border-slate-200 dark:border-white/10 hover:bg-slate-50">
+                 <Edit2 className="w-4 h-4 mr-2" /> EDITAR
+               </Button>
+             } />
+             <DialogContent className="sm:max-w-[500px] bg-white dark:bg-slate-900 rounded-[2rem]">
+               <DialogHeader>
+                 <DialogTitle className="text-2xl font-black">Editar Expediente</DialogTitle>
+                 <DialogDescription className="font-bold text-slate-500">Actualiza la información principal de la causa.</DialogDescription>
+               </DialogHeader>
+               <form onSubmit={handleUpdate} className="space-y-4 py-4">
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título / Carátula</Label>
+                   <Input 
+                    className="rounded-xl border-slate-200"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                    required
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</Label>
+                   <Input 
+                    className="rounded-xl border-slate-200"
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                    required
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Descripción</Label>
+                   <Textarea 
+                    className="rounded-xl border-slate-200 min-h-[100px]"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                   />
+                 </div>
+                 <DialogFooter>
+                   <Button type="submit" className="w-full bg-emerald-500 text-slate-950 font-black rounded-xl py-6" disabled={isSubmitting}>
+                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "GUARDAR CAMBIOS"}
+                   </Button>
+                 </DialogFooter>
+               </form>
+             </DialogContent>
+           </Dialog>
+
+           <Button 
+            variant="ghost" 
+            className="rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+            onClick={handleDelete}
+           >
+             <Trash2 className="w-4 h-4 mr-2" /> ELIMINAR
+           </Button>
         </div>
       </div>
 

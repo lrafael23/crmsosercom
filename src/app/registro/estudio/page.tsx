@@ -404,6 +404,16 @@ function RegistroEstudioContent() {
         displayName: data.nombreAbogado,
         role: "owner_firm",
         status: "active",
+        category: "SaaS_Professional",
+        powers: [
+          "view_cases", 
+          "create_cases", 
+          "edit_cases", 
+          "delete_cases", 
+          "manage_clients", 
+          "manage_team", 
+          "manage_billing"
+        ],
         tenantId: tenantId,
         companyId: null,
         department: null,
