@@ -277,6 +277,15 @@ service cloud.firestore {
       allow write: if isActive() && (isFirmMember() || isSuperAdmin());
     }
 
+    match /lawyer_settings/{lawyerId} {
+      allow read: if isAuth();
+      allow write: if isActive() && (
+        isSuperAdmin() ||
+        request.auth.uid == lawyerId ||
+        isFirmMember()
+      );
+    }
+
     // ─── Tickets ──────────────────────────────────────────────────────────────
 
     match /tickets/{ticketId} {

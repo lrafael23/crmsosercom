@@ -168,13 +168,17 @@ export default function AgendarClientePage() {
       // 1. Crear entrada en appointments con status inicial 'pending'
       const aptData = {
         title: `Conferencia: ${user.displayName || user.email}`,
+        titulo: `Conferencia: ${user.displayName || user.email}`,
         lawyerId,
         clientId: user.uid,
         tenantId: lawyer.tenantId,
         start: startDate,
         end: new Date(startDate.getTime() + 45 * 60 * 1000), // 45 min
+        fecha: format(startDate, "yyyy-MM-dd"),
+        hora: selectedSlot,
         status: isExistingClient ? "confirmed" : "pending_payment", 
         type: "meeting",
+        tipo: "Videollamada",
         source: "local",
         location: DEFAULT_MEET_LINK,
         meetingUrl: DEFAULT_MEET_LINK,
