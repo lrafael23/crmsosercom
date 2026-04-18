@@ -286,6 +286,92 @@ service cloud.firestore {
       );
     }
 
+    // Agenda Maestra
+
+    match /agenda_events/{eventId} {
+      allow read: if isAuth() && (
+        isSosercomAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid && resource.data.notifyClient == true)
+      );
+      allow create: if isActive() && (
+        isSosercomAdmin() ||
+        (isFirmMember() && request.resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() &&
+          request.resource.data.clientId == request.auth.uid &&
+          request.resource.data.notifyClient == true &&
+          (request.resource.data.type == "videollamada" || request.resource.data.type == "recordatorio_cliente")
+        )
+      );
+      allow update: if isActive() && (
+        isSosercomAdmin() ||
+        (isOwnerFirm() && resource.data.tenantId == userTenantId()) ||
+        (isFirmMember() &&
+          resource.data.tenantId == userTenantId() &&
+          (resource.data.assignedTo == request.auth.uid || resource.data.createdBy == request.auth.uid)
+        )
+      );
+      allow delete: if isActive() && (
+        isSosercomAdmin() ||
+        (isOwnerFirm() && resource.data.tenantId == userTenantId())
+      );
+    }
+
+    match /lawyer_availability/{availabilityId} {
+      allow read: if isAuth() && (
+        isSosercomAdmin() ||
+        request.auth.uid == resource.data.lawyerId ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        isClientFinal()
+      );
+      allow create, update: if isActive() && (
+        isSosercomAdmin() ||
+        request.auth.uid == request.resource.data.lawyerId ||
+        (isOwnerFirm() && request.resource.data.tenantId == userTenantId())
+      );
+      allow delete: if isSosercomAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+    }
+
+    match /agenda_reminders/{reminderId} {
+      allow read: if isAuth() && (
+        isSosercomAdmin() ||
+        resource.data.recipientUserId == request.auth.uid ||
+        (isFirmMember() && resource.data.tenantId == userTenantId())
+      );
+      allow create: if isActive() && (
+        isSosercomAdmin() ||
+        isFirmMember() ||
+        request.resource.data.recipientUserId == request.auth.uid
+      );
+      allow update: if isActive() && (
+        isSosercomAdmin() ||
+        resource.data.recipientUserId == request.auth.uid ||
+        isFirmMember()
+      );
+      allow delete: if isSosercomAdmin();
+    }
+
+    match /agenda_activity_logs/{logId} {
+      allow read: if isAuth() && (
+        isSosercomAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        resource.data.actorId == request.auth.uid
+      );
+      allow create: if isAuth();
+      allow update, delete: if isSosercomAdmin();
+    }
+
+    match /notification_queue/{notificationId} {
+      allow read: if isAuth() && (
+        isSosercomAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.recipient == request.auth.token.email
+      );
+      allow create: if isAuth();
+      allow update: if isSosercomAdmin();
+      allow delete: if isSosercomAdmin();
+    }
+
     // ─── Tickets ──────────────────────────────────────────────────────────────
 
     match /tickets/{ticketId} {

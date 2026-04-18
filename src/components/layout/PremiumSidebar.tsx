@@ -24,7 +24,8 @@ import {
   FolderOpen,
   LifeBuoy,
   BarChart3,
-  Shield
+  Shield,
+  CalendarDays
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,25 +46,30 @@ const navConfig: Record<string, NavItem[]> = {
     { title: "Panel Central", href: "/admin", icon: <LayoutDashboard className="w-5 h-5" /> },
     { title: "Gestión de Leads", href: "/admin/leads", icon: <Users className="w-5 h-5" /> },
     { title: "Cartera Clientes", href: "/admin/clientes", icon: <Building2 className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Control Tickets", href: "/admin/tickets", icon: <Ticket className="w-5 h-5" /> },
     { title: "Archivo Maestro", href: "/admin/documentos", icon: <FileText className="w-5 h-5" /> },
     { title: "Configuración", href: "/admin/configuracion", icon: <Settings className="w-5 h-5" /> },
   ],
   abogado: [
     { title: "Dashboard Legal", href: "/admin", icon: <Scale className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Expedientes", href: "/admin/documentos", icon: <FileText className="w-5 h-5" /> },
     { title: "Tickets Dept.", href: "/admin/tickets", icon: <Ticket className="w-5 h-5" /> },
   ],
   contador: [
     { title: "Dashboard Contable", href: "/admin", icon: <Calculator className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Balance General", href: "/admin/documentos", icon: <FileText className="w-5 h-5" /> },
   ],
   tributario: [
     { title: "Dashboard Tributo", href: "/admin", icon: <Landmark className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Declaraciones", href: "/admin/documentos", icon: <FileText className="w-5 h-5" /> },
   ],
   staff: [
     { title: "Asistente Operativo", href: "/admin", icon: <Ticket className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Gestión Documental", href: "/admin/documentos", icon: <FileText className="w-5 h-5" /> },
   ],
   cliente: [
@@ -79,13 +85,14 @@ const navConfig: Record<string, NavItem[]> = {
     { title: "Causas", href: "/firm/causas", icon: <Scale className="w-5 h-5" /> },
     { title: "Clientes", href: "/firm/clientes", icon: <Users className="w-5 h-5" /> },
     { title: "Equipo", href: "/firm/equipo", icon: <Users className="w-5 h-5" /> },
-    { title: "Agenda", href: "/firm/agenda", icon: <Settings className="w-5 h-5" /> },
+    { title: "Agenda Maestra", href: "/firm/agenda", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Suscripción", href: "/firm/facturacion", icon: <CreditCard className="w-5 h-5" /> },
   ],
   cliente_final: [
     { title: "Mi Portal", href: "/cliente", icon: <LayoutDashboard className="w-5 h-5" /> },
     { title: "Mis Causas", href: "/cliente", icon: <Scale className="w-5 h-5" /> },
     { title: "Documentos", href: "/cliente/documentos", icon: <FileText className="w-5 h-5" /> },
+    { title: "Mis citas", href: "/cliente/citas", icon: <CalendarDays className="w-5 h-5" /> },
     { title: "Soporte", href: "/cliente/soporte", icon: <Ticket className="w-5 h-5" /> },
   ],
 };
@@ -95,6 +102,7 @@ const superAdminSections: NavSection[] = [
     label: "Control Superior",
     items: [
       { title: "Dashboard Global", href: "/super-admin", icon: <Shield className="w-5 h-5 text-amber-500" /> },
+      { title: "Agenda Maestra", href: "/super-admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
       { title: "Auditoría Sist.", href: "/super-admin/auditoria", icon: <ShieldAlert className="w-5 h-5" /> },
       { title: "Finanzas Global", href: "/super-admin/finanzas", icon: <CreditCard className="w-5 h-5" /> },
       { title: "Operación", href: "/super-admin/operacion", icon: <Settings className="w-5 h-5" /> },
