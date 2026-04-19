@@ -26,6 +26,7 @@ export default function NewCasePage() {
   const [formData, setFormData] = useState({
     title: "",
     clientId: "",
+    clientName: "",
     category: "Judicial",
     type: "Procedimiento general",
     procedure: "Ordinario",
@@ -62,8 +63,8 @@ export default function NewCasePage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!user?.tenantId || !user.uid) return;
-    if (!formData.clientId) {
-      toast.error("Debes seleccionar un cliente");
+    if (!formData.clientId && !formData.clientName.trim()) {
+      toast.error("Debes seleccionar o escribir un cliente");
       return;
     }
 
@@ -78,8 +79,8 @@ export default function NewCasePage() {
         body: JSON.stringify({
           tenantId: user.tenantId,
           companyId: user.companyId || null,
-          clientId: formData.clientId,
-          clientName: selectedClient?.name || "Cliente",
+          clientId: formData.clientId || `manual-${Date.now()}`,
+          clientName: selectedClient?.name || formData.clientName.trim() || "Cliente",
           title: formData.title,
           category: formData.category,
           type: formData.type,
@@ -134,13 +135,17 @@ export default function NewCasePage() {
               <Input placeholder="Ej: Valenzuela con Banco Estado - Cobro de Pesos" className="h-14 rounded-2xl border-slate-200 px-6 text-lg font-bold" value={formData.title} onChange={(event) => setFormData({ ...formData, title: event.target.value })} required />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               <div className="space-y-2">
-                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Cliente vinculado</Label>
-                <select value={formData.clientId} onChange={(event) => setFormData({ ...formData, clientId: event.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold dark:bg-slate-950" required>
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Cliente existente</Label>
+                <select value={formData.clientId} onChange={(event) => setFormData({ ...formData, clientId: event.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold dark:bg-slate-950">
                   <option value="">{loadingClients ? "Cargando clientes..." : "Seleccionar cliente"}</option>
                   {clients.map((client) => <option key={client.id} value={client.id}>{client.name}{client.rut ? ` (${client.rut})` : ""}</option>)}
                 </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">O cliente manual</Label>
+                <Input placeholder="Nombre cliente" className="h-14 rounded-2xl border-slate-200 px-5" value={formData.clientName} onChange={(event) => setFormData({ ...formData, clientName: event.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Categoria</Label>
