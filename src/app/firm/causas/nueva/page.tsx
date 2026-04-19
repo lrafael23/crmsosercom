@@ -1,244 +1,184 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  serverTimestamp, 
-  doc, 
-  updateDoc, 
-  increment 
-} from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { CheckCircle2, ChevronLeft, Loader2, Scale } from "lucide-react";
+import { toast } from "sonner";
+import { auth, db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { 
-  Plus, 
-  ChevronLeft, 
-  Gavel, 
-  User, 
-  FileText, 
-  Scale, 
-  Loader2,
-  CheckCircle2
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
+import { CASE_STAGE_OPTIONS, CASE_STATUS_OPTIONS, type CaseStage, type CaseStatus } from "@/features/cases/types";
+
+type ClientOption = { id: string; name: string; rut?: string | null; email?: string | null };
 
 export default function NewCasePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form State
   const [formData, setFormData] = useState({
     title: "",
     clientId: "",
     category: "Judicial",
+    type: "Procedimiento general",
     description: "",
-    status: "active",
-    stage: "intake"
+    status: "active" as CaseStatus,
+    stage: "intake" as CaseStage,
+    priority: "medium" as "low" | "medium" | "high" | "critical",
+    nextDeadline: "",
+    pendingBalance: "0",
+    visibleToClient: true,
   });
 
   useEffect(() => {
     if (!user?.tenantId) return;
-
-    const loadClients = async () => {
+    async function loadClients() {
       try {
-        const q = query(
-          collection(db, "clients"),
-          where("tenantId", "==", user.tenantId)
-        );
-        const snap = await getDocs(q);
-        setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
-        console.error(err);
+        const snap = await getDocs(query(collection(db, "clients"), where("tenantId", "==", user!.tenantId)));
+        setClients(snap.docs.map((item) => {
+          const data = item.data();
+          return { id: item.id, name: String(data.name || data.nombre || data.displayName || data.email || "Cliente"), rut: typeof data.rut === "string" ? data.rut : null, email: typeof data.email === "string" ? data.email : null };
+        }));
+      } catch (error) {
+        console.error(error);
         toast.error("Error al cargar clientes");
       } finally {
         setLoadingClients(false);
       }
-    };
+    }
+    void loadClients();
+  }, [user?.tenantId]);
 
-    loadClients();
-  }, [user]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.tenantId) return;
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!user?.tenantId || !user.uid) return;
     if (!formData.clientId) {
       toast.error("Debes seleccionar un cliente");
       return;
     }
 
     setIsSubmitting(true);
-    const selectedClient = clients.find(c => c.id === formData.clientId);
-
+    const selectedClient = clients.find((client) => client.id === formData.clientId);
     try {
-      // 1. Create Case
-      const caseRef = await addDoc(collection(db, "cases"), {
-        ...formData,
-        clientName: selectedClient?.name || "Desconocido",
-        tenantId: user.tenantId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("No auth token");
+      const res = await fetch("/api/cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          tenantId: user.tenantId,
+          companyId: user.companyId || null,
+          clientId: formData.clientId,
+          clientName: selectedClient?.name || "Cliente",
+          title: formData.title,
+          category: formData.category,
+          type: formData.type,
+          description: formData.description,
+          status: formData.status,
+          stage: formData.stage,
+          assignedTo: user.uid,
+          assignedToName: user.displayName || user.email || "Responsable",
+          priority: formData.priority,
+          nextDeadline: formData.nextDeadline || null,
+          pendingBalance: Number(formData.pendingBalance || 0),
+          visibleToClient: formData.visibleToClient,
+          createdBy: user.uid,
+          updatedBy: null,
+        }),
       });
-
-      // 2. Increment client case count
-      await updateDoc(doc(db, "clients", formData.clientId), {
-        cases: increment(1),
-        updatedAt: serverTimestamp()
-      });
-
-      // 3. Update tenant usage best-effort; no bloquea la creacion de la causa.
-      await updateDoc(doc(db, "tenants", user.tenantId), {
-        activeCases: increment(1),
-        updatedAt: serverTimestamp()
-      }).catch(() => null);
-
-      toast.success("Causa judicial creada con éxito");
-      router.push(`/firm/causas/${caseRef.id}`);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al crear la causa");
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Error al crear causa");
+      toast.success("Causa creada con exito");
+      router.push(`/firm/causas/${data.record.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al crear la causa");
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      {/* Header */}
+    <div className="mx-auto max-w-3xl space-y-8">
       <div className="space-y-4">
-        <button 
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-[0.2em] hover:text-emerald-500 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Volver
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-400 transition-colors hover:text-emerald-500">
+          <ChevronLeft className="h-4 w-4" /> Volver
         </button>
-        
         <div className="flex items-center gap-4">
-           <div className="w-14 h-14 bg-emerald-500 text-slate-950 rounded-[2rem] flex items-center justify-center shadow-xl shadow-emerald-500/20">
-              <Scale className="w-7 h-7" />
-           </div>
-           <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Nueva Causa Judicial</h1>
-              <p className="text-slate-500 font-bold mt-2">Inicia un nuevo expediente y vincula a tu cliente.</p>
-           </div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-[2rem] bg-emerald-500 text-slate-950 shadow-xl shadow-emerald-500/20"><Scale className="h-7 w-7" /></div>
+          <div>
+            <h1 className="text-3xl font-black leading-none tracking-tight text-slate-900 dark:text-white">Nueva Causa Judicial</h1>
+            <p className="mt-2 font-bold text-slate-500">Inicia un expediente con timeline, autosave y agenda vinculada.</p>
+          </div>
         </div>
       </div>
 
-      <Card className="border-slate-200 dark:border-white/5 rounded-[3rem] p-10 bg-white dark:bg-slate-900 shadow-sm">
+      <Card className="rounded-[3rem] border-slate-200 bg-white p-8 shadow-sm dark:border-white/5 dark:bg-slate-900 md:p-10">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Carátula / Título de la Causa</Label>
-              <Input 
-                placeholder="Ej: Valenzuela con Banco Estado - Cobro de Pesos"
-                className="rounded-2xl border-slate-200 py-6 px-6 text-lg font-bold"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                required
-              />
+              <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Caratula / titulo de la causa</Label>
+              <Input placeholder="Ej: Valenzuela con Banco Estado - Cobro de Pesos" className="h-14 rounded-2xl border-slate-200 px-6 text-lg font-bold" value={formData.title} onChange={(event) => setFormData({ ...formData, title: event.target.value })} required />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Cliente Vinculado</Label>
-                <Select 
-                  value={formData.clientId} 
-                  onValueChange={(val) => val && setFormData({...formData, clientId: val})}
-                >
-                  <SelectTrigger className="rounded-2xl border-slate-200 py-6 px-6 font-bold">
-                    <SelectValue placeholder={loadingClients ? "Cargando clientes..." : "Seleccionar cliente"} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-200">
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id} className="font-bold py-3">
-                        {client.name} ({client.rut})
-                      </SelectItem>
-                    ))}
-                    {clients.length === 0 && !loadingClients && (
-                      <div className="p-4 text-center text-xs text-slate-400 font-bold italic">
-                        No hay clientes. Créalos en el ClientHub primero.
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Cliente vinculado</Label>
+                <select value={formData.clientId} onChange={(event) => setFormData({ ...formData, clientId: event.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold dark:bg-slate-950" required>
+                  <option value="">{loadingClients ? "Cargando clientes..." : "Seleccionar cliente"}</option>
+                  {clients.map((client) => <option key={client.id} value={client.id}>{client.name}{client.rut ? ` (${client.rut})` : ""}</option>)}
+                </select>
               </div>
+              <div className="space-y-2">
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Tipo de procedimiento</Label>
+                <select value={formData.category} onChange={(event) => setFormData({ ...formData, category: event.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold dark:bg-slate-950">
+                  <option value="Judicial">Judicial</option>
+                  <option value="Administrativo">Administrativo</option>
+                  <option value="Extrajudicial">Extrajudicial</option>
+                  <option value="Asesoria">Asesoria</option>
+                </select>
+              </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Tipo de Procedimiento</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(val) => val && setFormData({...formData, category: val})}
-                >
-                  <SelectTrigger className="rounded-2xl border-slate-200 py-6 px-6 font-bold">
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-200">
-                    <SelectItem value="Judicial" className="font-bold py-3 italic text-blue-600">Judicial</SelectItem>
-                    <SelectItem value="Administrativo" className="font-bold py-3 italic text-amber-600">Administrativo</SelectItem>
-                    <SelectItem value="Extrajudicial" className="font-bold py-3 italic text-emerald-600">Extrajudicial</SelectItem>
-                    <SelectItem value="Asesoría" className="font-bold py-3 italic text-purple-600">Asesoría</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              <select value={formData.status} onChange={(event) => setFormData({ ...formData, status: event.target.value as CaseStatus })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold dark:bg-slate-950">
+                {CASE_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              <select value={formData.stage} onChange={(event) => setFormData({ ...formData, stage: event.target.value as CaseStage })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold dark:bg-slate-950">
+                {CASE_STAGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              <select value={formData.priority} onChange={(event) => setFormData({ ...formData, priority: event.target.value as typeof formData.priority })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold dark:bg-slate-950">
+                <option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option><option value="critical">Critica</option>
+              </select>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Input type="date" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.nextDeadline} onChange={(event) => setFormData({ ...formData, nextDeadline: event.target.value })} />
+              <Input type="number" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.pendingBalance} onChange={(event) => setFormData({ ...formData, pendingBalance: event.target.value })} placeholder="Saldo pendiente" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Descripción Inicial / Materia</Label>
-              <Textarea 
-                placeholder="Breve resumen de la materia del juicio o la solicitud del cliente..."
-                className="rounded-[2rem] border-slate-200 min-h-[150px] p-6 text-sm font-medium leading-relaxed"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
+              <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Descripcion inicial / materia</Label>
+              <Textarea placeholder="Breve resumen de la materia del juicio o solicitud del cliente..." className="min-h-[150px] rounded-[2rem] border-slate-200 p-6 text-sm font-medium leading-relaxed" value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} required />
             </div>
+
+            <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 dark:border-white/10 dark:bg-slate-950">
+              Visible para cliente
+              <input type="checkbox" checked={formData.visibleToClient} onChange={(event) => setFormData({ ...formData, visibleToClient: event.target.checked })} />
+            </label>
           </div>
 
-          <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex gap-4">
-             <Button 
-               type="button" 
-               variant="outline" 
-               className="flex-1 rounded-2xl py-7 font-black bg-slate-50 dark:bg-slate-800"
-               onClick={() => router.back()}
-             >
-               CANCELAR
-             </Button>
-             <Button 
-               type="submit" 
-               className="flex-[2] bg-emerald-500 text-slate-950 font-black rounded-2xl py-7 shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all"
-               disabled={isSubmitting}
-             >
-               {isSubmitting ? (
-                 <>
-                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                   CREANDO EXPEDIENTE...
-                 </>
-               ) : (
-                 <>
-                   <CheckCircle2 className="w-5 h-5 mr-2" />
-                   CONFIRMAR Y CREAR CAUSA
-                 </>
-               )}
-             </Button>
+          <div className="flex gap-4 border-t border-slate-100 pt-6 dark:border-white/5">
+            <Button type="button" variant="outline" className="flex-1 rounded-2xl py-7 font-black" onClick={() => router.back()}>CANCELAR</Button>
+            <Button type="submit" className="flex-[2] rounded-2xl bg-emerald-500 py-7 font-black text-slate-950 shadow-xl shadow-emerald-500/20 transition-all hover:scale-105" disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />CREANDO EXPEDIENTE...</> : <><CheckCircle2 className="mr-2 h-5 w-5" />CONFIRMAR Y CREAR CAUSA</>}
+            </Button>
           </div>
         </form>
       </Card>
