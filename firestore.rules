@@ -187,29 +187,29 @@ service cloud.firestore {
 
     match /cases/{caseId} {
       allow read: if isAuth() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         (isClientFinal() && resource.data.clientId == request.auth.uid)
       );
-      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow create: if isActive() && (isFirmMember() || isSosercomAdmin());
       allow update: if isActive() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId())
       );
-      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+      allow delete: if isSosercomAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
     }
 
     // ─── Case Timeline Events ─────────────────────────────────────────────────
 
     match /case_timeline_events/{eventId} {
       allow read: if isAuth() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         (isClientFinal() && resource.data.clientId == request.auth.uid)
       );
-      allow create: if isActive() && (isFirmMember() || isSuperAdmin());
-      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
-      allow delete: if isSuperAdmin();
+      allow create: if isActive() && (isFirmMember() || isSosercomAdmin());
+      allow update: if isActive() && (isFirmMember() || isSosercomAdmin());
+      allow delete: if isSosercomAdmin();
     }
 
     // ─── Documents ────────────────────────────────────────────────────────────
