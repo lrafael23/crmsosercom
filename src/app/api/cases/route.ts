@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const clientId = req.nextUrl.searchParams.get("clientId");
     const assignedTo = req.nextUrl.searchParams.get("assignedTo") || undefined;
     const status = req.nextUrl.searchParams.get("status") || undefined;
+    const stage = req.nextUrl.searchParams.get("stage") || undefined;
     const search = req.nextUrl.searchParams.get("search") || undefined;
 
     if (clientId) {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!tenantId) return NextResponse.json({ error: "tenantId requerido" }, { status: 400 });
-    const data = await listCasesByTenant({ tenantId, assignedTo, status, search, token: authUser.token });
+    const data = await listCasesByTenant({ tenantId, assignedTo, status, stage, search, token: authUser.token });
     return NextResponse.json({ ok: true, data });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     if (!authUser) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const required = ["tenantId", "clientId", "clientName", "title", "category", "type", "description", "status", "stage", "assignedTo", "assignedToName", "visibleToClient", "createdBy"];
+    const required = ["tenantId", "clientId", "clientName", "title", "category", "type", "procedure", "description", "status", "stage", "assignedTo", "assignedToName", "visibleToClient", "createdBy"];
     for (const field of required) {
       if (body[field] === undefined || body[field] === null || body[field] === "") {
         return NextResponse.json({ error: `Campo requerido: ${field}` }, { status: 400 });

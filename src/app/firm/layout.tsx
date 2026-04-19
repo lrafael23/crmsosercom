@@ -26,11 +26,11 @@ import {
 // ─── Navegación ───────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { href: "/firm", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/firm/agenda", label: "Agenda Maestra", icon: Calendar },
   { href: "/firm/causas", label: "Causas", icon: FolderOpen },
+  { href: "/firm", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/firm/clientes", label: "Clientes", icon: Users },
   { href: "/firm/equipo", label: "Mi Equipo", icon: UserCheck },
-  { href: "/firm/agenda", label: "Agenda Maestra", icon: Calendar },
   { href: "/firm/facturacion", label: "Suscripción", icon: CreditCard },
 ];
 

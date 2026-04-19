@@ -82,8 +82,8 @@ const navConfig: Record<string, NavItem[]> = {
   ],
   owner_firm: [
     { title: "Agenda Maestra", href: "/firm/agenda", icon: <CalendarDays className="w-5 h-5" /> },
-    { title: "Mi Estudio", href: "/firm", icon: <LayoutDashboard className="w-5 h-5" /> },
     { title: "Causas", href: "/firm/causas", icon: <Scale className="w-5 h-5" /> },
+    { title: "Mi Estudio", href: "/firm", icon: <LayoutDashboard className="w-5 h-5" /> },
     { title: "Clientes", href: "/firm/clientes", icon: <Users className="w-5 h-5" /> },
     { title: "Equipo", href: "/firm/equipo", icon: <Users className="w-5 h-5" /> },
     { title: "Suscripción", href: "/firm/facturacion", icon: <CreditCard className="w-5 h-5" /> },

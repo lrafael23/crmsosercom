@@ -7,13 +7,14 @@ import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
 import LegalVault from "@/components/vault/LegalVault";
 import { Button } from "@/components/ui/button";
-import { CaseDetailView } from "@/features/cases/components/CaseDetailView";
+import { CaseDetailView } from "@/components/cases/CaseDetailView";
 import type { CaseRecord, TimelineEventRecord } from "@/features/cases/types";
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const tenantId = user?.tenantId;
   const [record, setRecord] = useState<CaseRecord | null>(null);
   const [timeline, setTimeline] = useState<TimelineEventRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"operacion" | "documentos">("operacion");
@@ -21,13 +22,14 @@ export default function CaseDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!params?.id || !user?.tenantId) return;
+    const activeTenantId = tenantId ?? "";
+    if (!params?.id || !activeTenantId) return;
     async function loadCase() {
       setLoading(true);
       try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) throw new Error("No auth token");
-        const res = await fetch(`/api/cases/${params.id}?tenantId=${encodeURIComponent(user!.tenantId!)}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`/api/cases/${params.id}?tenantId=${encodeURIComponent(activeTenantId)}`, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || "No se pudo cargar causa");
         setRecord(data.case);
@@ -41,7 +43,7 @@ export default function CaseDetailPage() {
       }
     }
     void loadCase();
-  }, [params?.id, user?.tenantId]);
+  }, [params?.id, tenantId]);
 
   if (loading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-500" /></div>;

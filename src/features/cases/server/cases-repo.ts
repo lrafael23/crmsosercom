@@ -1,7 +1,7 @@
 ﻿import { randomUUID } from "crypto";
 
 import type { CaseRecord, TimelineEventRecord } from "@/features/cases/types";
-import { createDocument, firestoreFetch, fromFirestoreFields, patchDocument, runQuery, toFirestoreFields } from "@/lib/firebase/rest-server";
+import { createDocument, firestoreFetch, fromFirestoreFields, patchDocument, runQuery } from "@/lib/firebase/rest-server";
 
 const CASES = "cases";
 const TIMELINE = "case_timeline_events";
@@ -23,16 +23,19 @@ function asCase(row: Record<string, unknown>): CaseRecord {
     title: String(row.title || "Causa sin titulo"),
     category: String(row.category || "General"),
     type: String(row.type || row.category || "General"),
+    procedure: String(row.procedure || row.type || "Procedimiento general"),
     description: String(row.description || ""),
     status: (row.status as CaseRecord["status"]) || "active",
     stage: (row.stage as CaseRecord["stage"]) || "intake",
     assignedTo: String(row.assignedTo || ""),
     assignedToName: String(row.assignedToName || "Sin asignar"),
+    lastAction: typeof row.lastAction === "string" ? row.lastAction : null,
+    pendingBalance: typeof row.pendingBalance === "number" ? row.pendingBalance : 0,
+    trackedMinutes: typeof row.trackedMinutes === "number" ? row.trackedMinutes : 0,
     priority: (row.priority as CaseRecord["priority"]) || "medium",
     openedAt: String(row.openedAt || row.createdAt || now),
     updatedAt: String(row.updatedAt || now),
     nextDeadline: typeof row.nextDeadline === "string" ? row.nextDeadline : null,
-    pendingBalance: typeof row.pendingBalance === "number" ? row.pendingBalance : 0,
     visibleToClient: row.visibleToClient !== false,
     createdBy: String(row.createdBy || ""),
     createdAt: String(row.createdAt || now),
@@ -71,15 +74,16 @@ async function audit(token: string, data: Record<string, unknown>) {
   });
 }
 
-export async function listCasesByTenant(params: { tenantId: string; assignedTo?: string; status?: string; search?: string; token: string }) {
+export async function listCasesByTenant(params: { tenantId: string; assignedTo?: string; status?: string; stage?: string; search?: string; token: string }) {
   const filters: Array<{ field: string; value: unknown }> = [{ field: "tenantId", value: params.tenantId }];
   if (params.assignedTo) filters.push({ field: "assignedTo", value: params.assignedTo });
   if (params.status) filters.push({ field: "status", value: params.status });
+  if (params.stage) filters.push({ field: "stage", value: params.stage });
 
   let rows = (await runQuery(CASES, filters, params.token)).map(asCase);
   if (params.search?.trim()) {
     const q = params.search.toLowerCase();
-    rows = rows.filter((r) => [r.title, r.clientName, r.category, r.assignedToName].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)));
+    rows = rows.filter((r) => [r.title, r.clientName, r.category, r.type, r.procedure, r.assignedToName].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)));
   }
   return rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
@@ -209,4 +213,13 @@ export async function createAgendaEventFromCase(params: {
   };
   await createDocument(AGENDA, id, agendaEvent, params.token);
   return agendaEvent;
+}
+
+export async function importCasesBulk(records: Array<Omit<CaseRecord, "id" | "createdAt" | "updatedAt" | "openedAt">>, token: string) {
+  let imported = 0;
+  for (const item of records) {
+    await createCase(item, token);
+    imported += 1;
+  }
+  return imported;
 }

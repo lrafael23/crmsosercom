@@ -19,6 +19,7 @@ type ClientOption = { id: string; name: string; rut?: string | null; email?: str
 export default function NewCasePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const tenantId = user?.tenantId;
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,20 +28,23 @@ export default function NewCasePage() {
     clientId: "",
     category: "Judicial",
     type: "Procedimiento general",
+    procedure: "Ordinario",
     description: "",
     status: "active" as CaseStatus,
     stage: "intake" as CaseStage,
     priority: "medium" as "low" | "medium" | "high" | "critical",
     nextDeadline: "",
     pendingBalance: "0",
+    trackedMinutes: "0",
+    lastAction: "Ingreso inicial",
     visibleToClient: true,
   });
 
   useEffect(() => {
-    if (!user?.tenantId) return;
+    if (!tenantId) return;
     async function loadClients() {
       try {
-        const snap = await getDocs(query(collection(db, "clients"), where("tenantId", "==", user!.tenantId)));
+        const snap = await getDocs(query(collection(db, "clients"), where("tenantId", "==", tenantId)));
         setClients(snap.docs.map((item) => {
           const data = item.data();
           return { id: item.id, name: String(data.name || data.nombre || data.displayName || data.email || "Cliente"), rut: typeof data.rut === "string" ? data.rut : null, email: typeof data.email === "string" ? data.email : null };
@@ -53,7 +57,7 @@ export default function NewCasePage() {
       }
     }
     void loadClients();
-  }, [user?.tenantId]);
+  }, [tenantId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -79,6 +83,7 @@ export default function NewCasePage() {
           title: formData.title,
           category: formData.category,
           type: formData.type,
+          procedure: formData.procedure,
           description: formData.description,
           status: formData.status,
           stage: formData.stage,
@@ -87,6 +92,8 @@ export default function NewCasePage() {
           priority: formData.priority,
           nextDeadline: formData.nextDeadline || null,
           pendingBalance: Number(formData.pendingBalance || 0),
+          trackedMinutes: Number(formData.trackedMinutes || 0),
+          lastAction: formData.lastAction || "Ingreso inicial",
           visibleToClient: formData.visibleToClient,
           createdBy: user.uid,
           updatedBy: null,
@@ -136,13 +143,24 @@ export default function NewCasePage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Tipo de procedimiento</Label>
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Categoria</Label>
                 <select value={formData.category} onChange={(event) => setFormData({ ...formData, category: event.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold dark:bg-slate-950">
                   <option value="Judicial">Judicial</option>
                   <option value="Administrativo">Administrativo</option>
                   <option value="Extrajudicial">Extrajudicial</option>
                   <option value="Asesoria">Asesoria</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Tipo de causa</Label>
+                <Input placeholder="Ej: Cobro ejecutivo, laboral, familia" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.type} onChange={(event) => setFormData({ ...formData, type: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Procedimiento</Label>
+                <Input placeholder="Ej: Ejecutivo, ordinario, administrativo" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.procedure} onChange={(event) => setFormData({ ...formData, procedure: event.target.value })} />
               </div>
             </div>
 
@@ -161,6 +179,11 @@ export default function NewCasePage() {
             <div className="grid gap-6 md:grid-cols-2">
               <Input type="date" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.nextDeadline} onChange={(event) => setFormData({ ...formData, nextDeadline: event.target.value })} />
               <Input type="number" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.pendingBalance} onChange={(event) => setFormData({ ...formData, pendingBalance: event.target.value })} placeholder="Saldo pendiente" />
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Input type="number" className="h-12 rounded-2xl border-slate-200 px-4" value={formData.trackedMinutes} onChange={(event) => setFormData({ ...formData, trackedMinutes: event.target.value })} placeholder="Minutos acumulados" />
+              <Input className="h-12 rounded-2xl border-slate-200 px-4" value={formData.lastAction} onChange={(event) => setFormData({ ...formData, lastAction: event.target.value })} placeholder="Ultima accion" />
             </div>
 
             <div className="space-y-2">

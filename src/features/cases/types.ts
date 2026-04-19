@@ -26,7 +26,6 @@ export type TimelineType =
   | "reunion"
   | "plazo"
   | "cobro"
-  | "cierre"
   | "observacion";
 
 export interface CaseRecord {
@@ -38,16 +37,19 @@ export interface CaseRecord {
   title: string;
   category: string;
   type: string;
+  procedure: string;
   description: string;
   status: CaseStatus;
   stage: CaseStage;
   assignedTo: string;
   assignedToName: string;
+  lastAction?: string | null;
+  pendingBalance?: number;
+  trackedMinutes?: number;
   priority?: "low" | "medium" | "high" | "critical";
   openedAt: string;
   updatedAt: string;
   nextDeadline?: string | null;
-  pendingBalance?: number;
   visibleToClient: boolean;
   createdBy: string;
   createdAt: string;
