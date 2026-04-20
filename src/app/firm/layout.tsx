@@ -12,6 +12,7 @@ import {
   Users,
   CreditCard,
   Calendar,
+  Clock3,
   UserCheck,
   AlertCircle,
   LogOut,
@@ -28,6 +29,7 @@ import {
 const NAV_ITEMS = [
   { href: "/firm/agenda", label: "Agenda Maestra", icon: Calendar },
   { href: "/firm/causas", label: "Causas", icon: FolderOpen },
+  { href: "/firm/disponibilidad", label: "Disponibilidad", icon: Clock3 },
   { href: "/firm", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/firm/clientes", label: "Clientes", icon: Users },
   { href: "/firm/equipo", label: "Mi Equipo", icon: UserCheck },

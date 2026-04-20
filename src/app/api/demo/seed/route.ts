@@ -241,6 +241,43 @@ function buildDemoDocs(tenantId: string, actorId: string, actorName: string, dem
     data: { id: "demo-seed-last-run", module: "demo_seed", action_type: "upsert_demo_data", entity_type: "seed", entity_id: tenantId, tenantId, user_id: actorId, timestamp: now, demoSeed: true },
   });
 
+  docs.push({
+    collection: "lawyer_settings",
+    id: actorId,
+    data: {
+      id: actorId,
+      lawyerId: actorId,
+      lawyerName: actorName,
+      tenantId,
+      weeklyAvailability: {
+        mon: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        tue: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        wed: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        thu: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        fri: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "17:00" }] },
+        sat: { enabled: false, slots: [] },
+        sun: { enabled: false, slots: [] },
+      },
+      availability: {
+        mon: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        tue: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        wed: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        thu: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "18:00" }] },
+        fri: { enabled: true, slots: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "17:00" }] },
+        sat: { enabled: false, slots: [] },
+        sun: { enabled: false, slots: [] },
+      },
+      blockedDates: [],
+      blockedSlots: [],
+      slotDurationMinutes: 45,
+      bufferMinutes: 0,
+      monthlyConferenceLimit: 25,
+      meetingUrl: DEFAULT_MEET_LINK,
+      updatedAt: now,
+      demoSeed: true,
+    },
+  });
+
   return docs;
 }
 

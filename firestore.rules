@@ -57,7 +57,14 @@ service cloud.firestore {
       allow read: if isAuth() && (
         request.auth.uid == userId || 
         isSosercomAdmin() || 
-        (isFirmMember() && resource.data.tenantId == userTenantId())
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && (
+          resource.data.role == "owner_firm" ||
+          resource.data.role == "abogado" ||
+          resource.data.role == "staff" ||
+          resource.data.role == "admin" ||
+          resource.data.role == "super_admin_global"
+        ))
       );
       allow create: if isAuth() && request.auth.uid == userId;
       allow update: if isAuth() && (
@@ -264,7 +271,38 @@ service cloud.firestore {
         isSuperAdmin() ||
         (isClientFinal() && request.resource.data.clientId == request.auth.uid)
       );
-      allow update: if isActive() && (isFirmMember() || isSuperAdmin());
+      allow update: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() &&
+          resource.data.clientId == request.auth.uid &&
+          request.resource.data.clientId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'date', 'time', 'start', 'end', 'updatedAt'
+          ])
+        )
+      );
+      allow delete: if isSuperAdmin() || (isFirmMember() && resource.data.tenantId == userTenantId());
+    }
+
+    match /appointment_slot_locks/{lockId} {
+      allow read: if isAuth();
+      allow create: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && request.resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && request.resource.data.clientId == request.auth.uid)
+      );
+      allow update: if isActive() && (
+        isSuperAdmin() ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() &&
+          resource.data.clientId == request.auth.uid &&
+          request.resource.data.clientId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'updatedAt'
+          ])
+        )
+      );
       allow delete: if isSuperAdmin() || (isFirmMember() && resource.data.tenantId == userTenantId());
     }
 
@@ -284,7 +322,7 @@ service cloud.firestore {
       allow write: if isActive() && (
         isSuperAdmin() ||
         request.auth.uid == lawyerId ||
-        isFirmMember()
+        ((isOwnerFirm() || isFirmMember()) && request.resource.data.tenantId == userTenantId())
       );
     }
 
@@ -311,6 +349,14 @@ service cloud.firestore {
         (isFirmMember() &&
           resource.data.tenantId == userTenantId() &&
           (resource.data.assignedTo == request.auth.uid || resource.data.createdBy == request.auth.uid)
+        ) ||
+        (isClientFinal() &&
+          resource.data.clientId == request.auth.uid &&
+          request.resource.data.clientId == request.auth.uid &&
+          resource.data.type == "videollamada" &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'date', 'day', 'startAt', 'endAt', 'updatedAt', 'appointmentStatus'
+          ])
         )
       );
       allow delete: if isActive() && (
