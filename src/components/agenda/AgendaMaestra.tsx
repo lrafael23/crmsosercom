@@ -526,6 +526,7 @@ function EventFormModal({
 export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope }) {
   const { user, loading: authLoading } = useAuth();
   const clientMode = scope === "client" || user?.role === "cliente_final" || user?.role === "cliente";
+  const caseBasePath = clientMode ? "/cliente/causas" : "/firm/causas";
   const [events, setEvents] = useState<AgendaEvent[]>([]);
   const [people, setPeople] = useState<AgendaPerson[]>([]);
   const [clients, setClients] = useState<AgendaClient[]>([]);
@@ -1225,7 +1226,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
                       {eventIcon(selected.type)}
                       <span>{agendaTypeMeta[selected.type].label}</span>
                     </div>
-                    <a href={selected.caseId ? `/firm/causas/${selected.caseId}` : "#"} className="rounded-2xl border border-current/20 bg-white/70 p-2" aria-label={selected.caseId ? "Abrir causa" : "Abrir ficha completa"}>
+                    <a href={selected.caseId ? `${caseBasePath}/${selected.caseId}` : "#"} className="rounded-2xl border border-current/20 bg-white/70 p-2" aria-label={selected.caseId ? "Abrir causa" : "Abrir ficha completa"}>
                       <MoreHorizontal className="h-4 w-4" />
                     </a>
                   </div>
@@ -1251,7 +1252,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <a
-                      href={selected.caseId ? `/firm/causas/${selected.caseId}` : selected.meetingUrl || "#"}
+                      href={selected.caseId ? `${caseBasePath}/${selected.caseId}` : selected.meetingUrl || "#"}
                       target={selected.meetingUrl ? "_blank" : undefined}
                       rel="noreferrer"
                       className="inline-flex h-11 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-medium text-white transition hover:bg-neutral-800"

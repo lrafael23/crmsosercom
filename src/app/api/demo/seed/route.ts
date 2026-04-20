@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { fromFirestoreFields, firestoreFetch, requireFirebaseUser, upsertDocument } from "@/lib/firebase/rest-server";
+import { fromFirestoreFields, firestoreFetch, requireFirebaseUser, runQuery, upsertDocument } from "@/lib/firebase/rest-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +77,7 @@ function eventDoc(params: {
     location: params.location ?? null,
     meetingUrl: params.meetingUrl ?? null,
     notifyClient: true,
+    visibleToClient: true,
     notifyAssignee: true,
     emailNotificationStatus: "pending",
     reminderAt: null,
@@ -89,11 +90,20 @@ function eventDoc(params: {
   };
 }
 
-function buildDemoDocs(tenantId: string, actorId: string, actorName: string): DemoDoc[] {
+async function findDemoClientUserId(token: string) {
+  const rows = await runQuery("users", [{ field: "email", value: "cliente.0mvp@sosercom.cl" }], token).catch(() => []);
+  const match = rows.find((row) => {
+    const role = String((row as Record<string, unknown>).role || "");
+    return role === "cliente_final" || role === "cliente";
+  });
+  return typeof match?.id === "string" ? match.id : "demo-client-juan-perez";
+}
+
+function buildDemoDocs(tenantId: string, actorId: string, actorName: string, demoClientId: string): DemoDoc[] {
   const now = nowIso();
   const week = startOfCurrentWeek();
   const clients = [
-    { id: "demo-client-juan-perez", name: "Juan Perez", email: "juan.perez.demo@sosercom.cl", rut: "12.345.678-9" },
+    { id: demoClientId, name: "Cliente Demo 0MVP", email: "cliente.0mvp@sosercom.cl", rut: "12.345.678-9" },
     { id: "demo-client-maria-gonzalez", name: "Maria Gonzalez", email: "maria.gonzalez.demo@sosercom.cl", rut: "15.234.567-8" },
     { id: "demo-client-sociedad-alfa", name: "Sociedad Alfa SpA", email: "contacto.alfa.demo@sosercom.cl", rut: "76.123.456-7" },
   ];
@@ -206,13 +216,13 @@ function buildDemoDocs(tenantId: string, actorId: string, actorName: string): De
   );
 
   docs.push(
-    { collection: "payment_orders", id: "demo-payment-cuota-2", data: { id: "demo-payment-cuota-2", tenantId, caseId: cases[0].id, clientId: cases[0].clientId, clientName: cases[0].clientName, title: "Honorarios cuota 2", description: "Cobro demo pendiente por honorarios de tramitacion.", amountCLP: 450000, currency: "CLP", status: "pending", paymentType: "honorario", source: "demo_seed", createdBy: actorId, createdAt: now, updatedAt: now, demoSeed: true } },
-    { collection: "payment_orders", id: "demo-payment-audiencia", data: { id: "demo-payment-audiencia", tenantId, caseId: cases[2].id, clientId: cases[2].clientId, clientName: cases[2].clientName, title: "Preparacion audiencia", description: "Cobro demo por preparacion de audiencia.", amountCLP: 180000, currency: "CLP", status: "pending", paymentType: "honorario", source: "demo_seed", createdBy: actorId, createdAt: now, updatedAt: now, demoSeed: true } },
+    { collection: "payment_orders", id: "demo-payment-cuota-2", data: { id: "demo-payment-cuota-2", tenantId, caseId: cases[0].id, clientId: cases[0].clientId, clientName: cases[0].clientName, title: "Honorarios cuota 2", description: "Cobro demo pendiente por honorarios de tramitacion.", amountCLP: 450000, amount: 450000, currency: "CLP", status: "pending", dueDate: dateKey(addDays(week, 2, 15)), paymentType: "honorario", visibleToClient: true, source: "demo_seed", createdBy: actorId, createdAt: now, updatedAt: now, demoSeed: true } },
+    { collection: "payment_orders", id: "demo-payment-audiencia", data: { id: "demo-payment-audiencia", tenantId, caseId: cases[2].id, clientId: cases[2].clientId, clientName: cases[2].clientName, title: "Preparacion audiencia", description: "Cobro demo por preparacion de audiencia.", amountCLP: 180000, amount: 180000, currency: "CLP", status: "pending", dueDate: dateKey(addDays(week, 5, 12)), paymentType: "honorario", visibleToClient: true, source: "demo_seed", createdBy: actorId, createdAt: now, updatedAt: now, demoSeed: true } },
   );
 
   docs.push(
-    { collection: "case_documents", id: "demo-doc-antecedentes", data: { id: "demo-doc-antecedentes", caseId: cases[0].id, tenantId, clientId: cases[0].clientId, uploadedBy: actorId, name: "Antecedentes iniciales - Cobro ejecutivo.txt", type: "text/plain", size: 1240, storagePath: "demo-docs/antecedentes-causa-demo.txt", webViewLink: "/demo-docs/antecedentes-causa-demo.txt", webContentLink: "/demo-docs/antecedentes-causa-demo.txt", createdAt: now, demoSeed: true } },
-    { collection: "case_documents", id: "demo-doc-minuta", data: { id: "demo-doc-minuta", caseId: cases[2].id, tenantId, clientId: cases[2].clientId, uploadedBy: actorId, name: "Minuta preparacion audiencia.txt", type: "text/plain", size: 980, storagePath: "demo-docs/minuta-audiencia-demo.txt", webViewLink: "/demo-docs/minuta-audiencia-demo.txt", webContentLink: "/demo-docs/minuta-audiencia-demo.txt", createdAt: now, demoSeed: true } },
+    { collection: "case_documents", id: "demo-doc-antecedentes", data: { id: "demo-doc-antecedentes", caseId: cases[0].id, tenantId, clientId: cases[0].clientId, uploadedBy: actorId, name: "Antecedentes iniciales - Cobro ejecutivo.txt", title: "Antecedentes iniciales - Cobro ejecutivo", category: "Antecedentes", visibleToClient: true, type: "text/plain", size: 1240, storagePath: "demo-docs/antecedentes-causa-demo.txt", webViewLink: "/demo-docs/antecedentes-causa-demo.txt", webContentLink: "/demo-docs/antecedentes-causa-demo.txt", createdAt: now, demoSeed: true } },
+    { collection: "case_documents", id: "demo-doc-minuta", data: { id: "demo-doc-minuta", caseId: cases[2].id, tenantId, clientId: cases[2].clientId, uploadedBy: actorId, name: "Minuta preparacion audiencia.txt", title: "Minuta preparacion audiencia", category: "Audiencia", visibleToClient: true, type: "text/plain", size: 980, storagePath: "demo-docs/minuta-audiencia-demo.txt", webViewLink: "/demo-docs/minuta-audiencia-demo.txt", webContentLink: "/demo-docs/minuta-audiencia-demo.txt", createdAt: now, demoSeed: true } },
   );
 
   const agenda = [
@@ -251,7 +261,8 @@ export async function POST(req: NextRequest) {
     const defaultTenantId = process.env.NEXT_PUBLIC_DEMO_TENANT_ID || (userTenantId && userTenantId !== "global" ? userTenantId : "sosercom-main");
     const tenantId = String(body.tenantId || defaultTenantId);
     const actorName = String(userData.displayName || userData.email || "Admin demo");
-    const docs = buildDemoDocs(tenantId, authUser.uid, actorName);
+    const demoClientId = String(body.clientPortalUserId || (await findDemoClientUserId(authUser.token)));
+    const docs = buildDemoDocs(tenantId, authUser.uid, actorName, demoClientId);
 
     for (const item of docs) {
       await upsertDocument(item.collection, item.id, item.data, authUser.token);
@@ -262,6 +273,7 @@ export async function POST(req: NextRequest) {
       tenantId,
       upserted: docs.length,
       clients: 3,
+      clientPortalUserId: demoClientId,
       cases: 3,
       agendaEvents: 5,
       paymentOrders: 2,

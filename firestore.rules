@@ -151,7 +151,9 @@ service cloud.firestore {
       allow read: if isAuth() && (
         isSuperAdmin() ||
         resource.data.createdBy == request.auth.uid ||
-        resource.data.tenantId == userTenantId()
+        (isSosercomAdmin() && resource.data.tenantId == userTenantId()) ||
+        (isFirmMember() && resource.data.tenantId == userTenantId()) ||
+        (isClientFinal() && resource.data.clientId == request.auth.uid)
       );
       allow create: if isAuth();
       allow update: if isSuperAdmin();
@@ -189,7 +191,7 @@ service cloud.firestore {
       allow read: if isAuth() && (
         isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
-        (isClientFinal() && resource.data.clientId == request.auth.uid)
+        (isClientFinal() && resource.data.clientId == request.auth.uid && resource.data.visibleToClient == true)
       );
       allow create: if isActive() && (isFirmMember() || isSosercomAdmin());
       allow update: if isActive() && (
@@ -205,7 +207,7 @@ service cloud.firestore {
       allow read: if isAuth() && (
         isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
-        (isClientFinal() && resource.data.clientId == request.auth.uid)
+        (isClientFinal() && resource.data.clientId == request.auth.uid && resource.data.visibleToClient == true)
       );
       allow create: if isActive() && (isFirmMember() || isSosercomAdmin());
       allow update: if isActive() && (isFirmMember() || isSosercomAdmin());
@@ -230,7 +232,7 @@ service cloud.firestore {
         isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         (isClientFinal() && (
-          resource.data.clientId == request.auth.uid ||
+          (resource.data.clientId == request.auth.uid && resource.data.visibleToClient == true) ||
           resource.data.uploadedBy == request.auth.uid
         ))
       );
