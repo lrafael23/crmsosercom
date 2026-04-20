@@ -543,6 +543,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [requestedEventId, setRequestedEventId] = useState<string | null>(null);
 
   const userName = user?.displayName || user?.email || "Sin asignar";
   const internalCanCreate = canCreateAgendaEvent(user);
@@ -557,6 +558,10 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
       return { key: dateKey(date), label: humanDay(date), date };
     });
   }, [weekAnchor]);
+
+  useEffect(() => {
+    setRequestedEventId(new URLSearchParams(window.location.search).get("eventId"));
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -656,7 +661,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
     }
 
     loadCatalogs();
-  }, [clientMode, scopeMode, user?.tenantId, user?.uid]);
+  }, [clientMode, scopeMode, user]);
 
   const filteredEvents = useMemo(() => {
     const queryText = normalizeText(search.trim());
@@ -679,6 +684,14 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
   const critical = filteredEvents.filter((event) => event.status === "critico" || event.priority === "critica");
   const pending = filteredEvents.filter((event) => event.status === "pendiente" || event.status === "en_proceso" || event.status === "reprogramado");
   const pendingBilling = filteredEvents.filter((event) => event.type === "cobro" && event.status !== "cumplido" && event.status !== "cancelado");
+
+  useEffect(() => {
+    if (!requestedEventId || events.length === 0) return;
+    const found = events.find((event) => event.id === requestedEventId);
+    if (!found) return;
+    setSelectedId(found.id);
+    setWeekAnchor(found.startAt);
+  }, [events, requestedEventId]);
 
   function showNotice(message: string) {
     setNotice(message);
@@ -1212,7 +1225,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
                       {eventIcon(selected.type)}
                       <span>{agendaTypeMeta[selected.type].label}</span>
                     </div>
-                    <a href={selected.caseId ? `/firm/causas/${selected.caseId}` : "#"} className="rounded-2xl border border-current/20 bg-white/70 p-2" aria-label="Abrir ficha completa">
+                    <a href={selected.caseId ? `/firm/causas/${selected.caseId}` : "#"} className="rounded-2xl border border-current/20 bg-white/70 p-2" aria-label={selected.caseId ? "Abrir causa" : "Abrir ficha completa"}>
                       <MoreHorizontal className="h-4 w-4" />
                     </a>
                   </div>
@@ -1243,7 +1256,7 @@ export default function AgendaMaestra({ scope = "firm" }: { scope?: AgendaScope 
                       rel="noreferrer"
                       className="inline-flex h-11 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-medium text-white transition hover:bg-neutral-800"
                     >
-                      Abrir ficha completa <ExternalLink className="ml-2 h-4 w-4" />
+                      {selected.caseId ? "Abrir causa" : "Abrir ficha completa"} <ExternalLink className="ml-2 h-4 w-4" />
                     </a>
                     <Button variant="outline" className="h-11 rounded-2xl border-neutral-300 bg-white/70" onClick={openEdit} disabled={clientMode}>Editar / reagendar</Button>
                     <SelectField

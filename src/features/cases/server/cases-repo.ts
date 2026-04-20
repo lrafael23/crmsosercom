@@ -163,6 +163,8 @@ export async function createAgendaEventFromCase(params: {
   tenantId: string;
   caseId: string;
   clientId?: string | null;
+  clientName?: string | null;
+  companyId?: string | null;
   createdBy: string;
   assignedTo: string;
   assignedToName: string;
@@ -173,6 +175,13 @@ export async function createAgendaEventFromCase(params: {
   startAt: string;
   endAt?: string;
   status?: string;
+  priority?: string;
+  location?: string | null;
+  meetingUrl?: string | null;
+  notifyClient?: boolean;
+  notifyAssignee?: boolean;
+  linkedBillingId?: string | null;
+  linkedDeadlineId?: string | null;
   token: string;
 }) {
   const id = randomUUID();
@@ -180,10 +189,10 @@ export async function createAgendaEventFromCase(params: {
   const agendaEvent = {
     id,
     tenantId: params.tenantId,
-    companyId: null,
+    companyId: params.companyId ?? null,
     caseId: params.caseId,
     clientId: params.clientId ?? null,
-    clientName: null,
+    clientName: params.clientName ?? null,
     clientEmail: null,
     createdBy: params.createdBy,
     assignedTo: params.assignedTo,
@@ -193,20 +202,20 @@ export async function createAgendaEventFromCase(params: {
     description: params.description,
     type: params.type,
     status: params.status ?? "pendiente",
-    priority: params.type === "audiencia" || params.type === "plazo" ? "alta" : "media",
+    priority: params.priority ?? (params.type === "audiencia" || params.type === "plazo" ? "alta" : "media"),
     day: params.date,
     date: params.date,
     startAt: params.startAt,
     endAt: params.endAt ?? params.startAt,
     timezone: "America/Santiago",
-    location: null,
-    meetingUrl: params.type === "videollamada" || params.type === "reunion_interna" ? process.env.NEXT_PUBLIC_DEFAULT_MEET_LINK || "https://meet.google.com/nyz-vuxh-xmu" : null,
-    notifyClient: true,
-    notifyAssignee: true,
+    location: params.location ?? null,
+    meetingUrl: params.meetingUrl ?? (params.type === "videollamada" || params.type === "reunion_interna" ? process.env.NEXT_PUBLIC_DEFAULT_MEET_LINK || "https://meet.google.com/nyz-vuxh-xmu" : null),
+    notifyClient: params.notifyClient ?? true,
+    notifyAssignee: params.notifyAssignee ?? true,
     emailNotificationStatus: "pending",
     reminderAt: null,
-    linkedBillingId: params.type === "cobro" ? params.caseId : null,
-    linkedDeadlineId: params.type === "plazo" ? params.caseId : null,
+    linkedBillingId: params.linkedBillingId ?? (params.type === "cobro" ? params.caseId : null),
+    linkedDeadlineId: params.linkedDeadlineId ?? (params.type === "plazo" ? params.caseId : null),
     linkedWorkflowStepId: null,
     createdAt: now,
     updatedAt: now,

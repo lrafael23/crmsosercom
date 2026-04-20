@@ -1,0 +1,2 @@
+﻿clienteId,clienteNombre,titulo,materia,tipo,procedimiento,descripcion,estado,etapa,responsableId,responsableNombre,ultimaAccion,saldoPendiente,minutosAcumulados,proximoPlazo,visibleCliente,prioridad
+cliente-demo-1,Juan Perez,Juan Perez - Cobro ejecutivo,Judicial,Cobro ejecutivo,Ejecutivo,Causa importada desde plantilla,active,intake,abogado-demo-1,Rafael Vera,Ingreso inicial,150000,60,2026-04-30,true,medium

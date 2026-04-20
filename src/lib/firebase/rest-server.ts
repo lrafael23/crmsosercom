@@ -90,6 +90,13 @@ export async function createDocument(collectionName: string, id: string, data: R
   });
 }
 
+export async function upsertDocument(collectionName: string, id: string, data: Record<string, unknown>, token: string) {
+  return firestoreFetch(`${collectionName}/${encodeURIComponent(id)}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(toFirestoreFields(data)),
+  });
+}
+
 export async function patchDocument(collectionName: string, id: string, patch: Record<string, unknown>, token: string) {
   const mask = Object.keys(patch).map((key) => `updateMask.fieldPaths=${encodeURIComponent(key)}`).join("&");
   return firestoreFetch(`${collectionName}/${encodeURIComponent(id)}?${mask}`, token, {

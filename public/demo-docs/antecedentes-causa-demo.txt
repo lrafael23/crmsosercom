@@ -1,0 +1,4 @@
+﻿Documento demo: antecedentes iniciales
+
+Este archivo existe para validar la boveda legal del 0MVP.
+Incluye antecedentes basicos, saldo pendiente y relacion con causa demo.

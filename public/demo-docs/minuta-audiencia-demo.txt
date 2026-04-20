@@ -1,0 +1,4 @@
+﻿Documento demo: minuta de audiencia
+
+Este archivo existe para validar la boveda legal del 0MVP.
+Incluye pauta de preparacion, testigos y tareas previas a audiencia.
