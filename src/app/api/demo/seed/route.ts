@@ -247,7 +247,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const tenantId = String(body.tenantId || userData.tenantId || "sosercom-main");
+    const userTenantId = String(userData.tenantId || "");
+    const defaultTenantId = process.env.NEXT_PUBLIC_DEMO_TENANT_ID || (userTenantId && userTenantId !== "global" ? userTenantId : "sosercom-main");
+    const tenantId = String(body.tenantId || defaultTenantId);
     const actorName = String(userData.displayName || userData.email || "Admin demo");
     const docs = buildDemoDocs(tenantId, authUser.uid, actorName);
 
