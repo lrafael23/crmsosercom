@@ -171,16 +171,16 @@ service cloud.firestore {
 
     match /clients/{clientId} {
       allow read: if isAuth() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         request.auth.uid == clientId
       );
-      allow create: if isAuth() && (isFirmMember() || isOwnerFirm() || isSuperAdmin());
+      allow create: if isAuth() && (isFirmMember() || isOwnerFirm() || isSosercomAdmin());
       allow update: if isAuth() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId())
       );
-      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+      allow delete: if isSosercomAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
     }
 
     // ─── Cases (Causas) ───────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ service cloud.firestore {
 
     match /case_documents/{docId} {
       allow read: if isAuth() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId()) ||
         (isClientFinal() && (
           resource.data.clientId == request.auth.uid ||
@@ -235,7 +235,7 @@ service cloud.firestore {
         ))
       );
       allow create: if isActive() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && request.resource.data.tenantId == userTenantId()) ||
         (isClientFinal() &&
           request.resource.data.uploadedBy == request.auth.uid &&
@@ -243,10 +243,10 @@ service cloud.firestore {
         )
       );
       allow update: if isActive() && (
-        isSuperAdmin() ||
+        isSosercomAdmin() ||
         (isFirmMember() && resource.data.tenantId == userTenantId())
       );
-      allow delete: if isSuperAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
+      allow delete: if isSosercomAdmin() || (isOwnerFirm() && resource.data.tenantId == userTenantId());
     }
 
     // ─── Appointments ─────────────────────────────────────────────────────────
