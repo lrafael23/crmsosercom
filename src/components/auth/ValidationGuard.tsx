@@ -13,13 +13,13 @@ const pendingSteps = [
 ];
 
 export function ValidationGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, isImpersonating, realUser } = useAuth();
 
   if (loading || !user) {
     return null;
   }
 
-  if (user.status === "active") {
+  if (user.status === "active" || (isImpersonating && realUser?.role === "super_admin_global")) {
     return <>{children}</>;
   }
 

@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getClientCaseDetail } from "@/features/client-portal/server/client-portal-repo";
-import { firestoreFetch, fromFirestoreFields, requireFirebaseUser } from "@/lib/firebase/rest-server";
+import { resolveRequestActor } from "@/lib/auth/server-actor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,19 +13,14 @@ function isClientRole(role: string) {
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    const authUser = await requireFirebaseUser(req);
-    if (!authUser) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
-    const userDoc = await firestoreFetch(`users/${authUser.uid}`, authUser.token).catch(() => null);
-    const userData = userDoc?.fields ? fromFirestoreFields(userDoc.fields) : {};
-    const role = String(userData.role || "");
-
-    if (!isClientRole(role)) {
+    const actor = await resolveRequestActor(req);
+    if (!actor) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!isClientRole(actor.role)) {
       return NextResponse.json({ error: "Solo clientes pueden usar este portal" }, { status: 403 });
     }
 
     const { id } = await params;
-    const result = await getClientCaseDetail({ clientId: authUser.uid, caseId: id, token: authUser.token });
+    const result = await getClientCaseDetail({ clientId: actor.uid, caseId: id, token: actor.token });
     if (!result) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
     return NextResponse.json({ ok: true, ...result });

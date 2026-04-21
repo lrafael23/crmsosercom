@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, query, orderBy, limit, getDocs, getCountFromServer, where } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { IMPERSONATION_STORAGE_KEY } from "@/lib/auth/impersonation";
 import { 
   Building2, 
   Users, 
@@ -134,13 +135,31 @@ export default function SuperAdminPage() {
     const userQuery = query(collection(db, "users"), where("email", "==", email), limit(1));
     const snap = await getDocs(userQuery);
     if (!snap.empty) {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch("/api/super-admin/impersonation", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ targetUserId: snap.docs[0].id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) return;
+      localStorage.setItem(IMPERSONATION_STORAGE_KEY, JSON.stringify({
+        sessionId: data.session.id,
+        targetUserId: data.targetUser.uid,
+        targetRole: data.targetUser.role,
+        tenantId: data.targetUser.tenantId ?? null,
+      }));
       await impersonate(snap.docs[0].id);
       router.push(path);
     }
   };
 
   const openDemoSchedule = async () => {
-    const lawyerQuery = query(collection(db, "users"), where("email", "==", "lawyer.0mvp@sosercom.cl"), limit(1));
+    const lawyerQuery = query(collection(db, "users"), where("email", "==", "owner.demo@sosercom.cl"), limit(1));
     const lawyerSnap = await getDocs(lawyerQuery);
     if (!lawyerSnap.empty) {
       await openDemoAs("cliente.0mvp@sosercom.cl", `/cliente/agendar/${lawyerSnap.docs[0].id}`);
@@ -356,13 +375,13 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <Button
-                    onClick={() => openDemoAs("lawyer.0mvp@sosercom.cl", "/firm")}
+                    onClick={() => openDemoAs("owner.demo@sosercom.cl", "/firm")}
                     className="h-12 rounded-2xl bg-slate-900 px-5 text-xs font-black uppercase tracking-widest text-white"
                   >
                     Probar Estudio
                   </Button>
                   <Button
-                    onClick={() => openDemoAs("lawyer.0mvp@sosercom.cl", "/firm/clientes")}
+                    onClick={() => openDemoAs("owner.demo@sosercom.cl", "/firm/clientes")}
                     className="h-12 rounded-2xl bg-emerald-600 px-5 text-xs font-black uppercase tracking-widest text-white"
                   >
                     Crear Cliente

@@ -102,6 +102,7 @@ async function findDemoClientUserId(token: string) {
 function buildDemoDocs(tenantId: string, actorId: string, actorName: string, demoClientId: string): DemoDoc[] {
   const now = nowIso();
   const week = startOfCurrentWeek();
+  const demoOwnerId = "demo-owner-firm";
   const clients = [
     { id: demoClientId, name: "Cliente Demo 0MVP", email: "cliente.0mvp@sosercom.cl", rut: "12.345.678-9" },
     { id: "demo-client-maria-gonzalez", name: "Maria Gonzalez", email: "maria.gonzalez.demo@sosercom.cl", rut: "15.234.567-8" },
@@ -166,6 +167,72 @@ function buildDemoDocs(tenantId: string, actorId: string, actorName: string, dem
   ];
 
   const docs: DemoDoc[] = [];
+
+  docs.push(
+    {
+      collection: "tenants",
+      id: tenantId,
+      data: {
+        id: tenantId,
+        name: "Sosercom Demo Firm",
+        nombreEstudio: "Sosercom Demo Firm",
+        ownerId: demoOwnerId,
+        ownerUid: demoOwnerId,
+        ownerName: "Rafael Vera Demo",
+        ownerNombre: "Rafael Vera Demo",
+        ownerEmail: "owner.demo@sosercom.cl",
+        plan: "pro",
+        planId: "pro",
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+        demoSeed: true,
+      },
+    },
+    {
+      collection: "users",
+      id: demoOwnerId,
+      data: {
+        uid: demoOwnerId,
+        email: "owner.demo@sosercom.cl",
+        displayName: "Rafael Vera Demo",
+        role: "owner_firm",
+        status: "active",
+        tenantId,
+        companyId: null,
+        department: null,
+        planId: "pro",
+        subscriptionStatus: "active",
+        createdBy: actorId,
+        validatedBy: actorId,
+        powers: ["view_cases", "create_cases", "edit_cases", "manage_clients", "manage_team"],
+        createdAt: now,
+        updatedAt: now,
+        demoSeed: true,
+      },
+    },
+    {
+      collection: "users",
+      id: demoClientId,
+      data: {
+        uid: demoClientId,
+        email: "cliente.0mvp@sosercom.cl",
+        displayName: "Cliente Demo 0MVP",
+        role: "cliente_final",
+        status: "active",
+        tenantId,
+        companyId: null,
+        department: null,
+        planId: null,
+        subscriptionStatus: null,
+        createdBy: actorId,
+        validatedBy: actorId,
+        createdAt: now,
+        updatedAt: now,
+        demoSeed: true,
+      },
+    },
+  );
 
   for (const client of clients) {
     docs.push({
@@ -311,6 +378,8 @@ export async function POST(req: NextRequest) {
       upserted: docs.length,
       clients: 3,
       clientPortalUserId: demoClientId,
+      ownerFirmUserId: "demo-owner-firm",
+      lawyerId: authUser.uid,
       cases: 3,
       agendaEvents: 5,
       paymentOrders: 2,

@@ -5,23 +5,18 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { IMPERSONATION_COOKIE_NAME, IMPERSONATION_STORAGE_KEY, type StoredImpersonationSession } from "@/lib/auth/impersonation";
 import { setAuthCookies, clearAuthCookies } from "./session";
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
-
 export type UserRole =
-  // Plataforma Sosercom
   | "super_admin_global"
   | "admin"
-  // Estudio jurídico (tenant)
-  | "owner_firm"      // Abogado jefe / dueño del estudio
+  | "owner_firm"
   | "abogado"
   | "contador"
   | "tributario"
   | "staff"
-  // Cliente final
   | "cliente_final"
-  // Roles legacy (compatibilidad hacia atrás)
   | "cliente";
 
 export type UserStatus = "pending_validation" | "active" | "suspended";
@@ -42,14 +37,11 @@ export interface AppUser {
   displayName: string | null;
   role: UserRole;
   status: UserStatus;
-  // Multi-tenancy
   tenantId: string | null;
   companyId: string | null;
   department: string | null;
-  // Plan y suscripción (solo para owner_firm)
   planId: string | null;
   subscriptionStatus: SubscriptionStatus;
-  // Trazabilidad
   createdBy?: string | null;
   validatedBy?: string | null;
   powers?: string[];
@@ -65,8 +57,6 @@ interface AuthContextType {
   isImpersonating: boolean;
   realUser: AppUser | null;
 }
-
-// ─── Constantes de Roles ─────────────────────────────────────────────────────
 
 const FIRM_ROLES: UserRole[] = ["owner_firm", "abogado", "contador", "tributario", "staff"];
 const CLIENT_ROLES: UserRole[] = ["cliente_final", "cliente"];
@@ -92,8 +82,6 @@ export function isOwnerFirm(role: UserRole | null | undefined): boolean {
   return role === "owner_firm";
 }
 
-// ─── Rutas por Rol ────────────────────────────────────────────────────────────
-
 export function getDefaultRouteForRole(role: UserRole | null | undefined): string {
   if (!role) return "/login";
   if (role === "super_admin_global") return "/super-admin";
@@ -106,37 +94,14 @@ export function getDefaultRouteForRole(role: UserRole | null | undefined): strin
 
 export function canAccessRoute(role: UserRole | null | undefined, pathname: string): boolean {
   if (!role) return false;
-
-  // Super admin puede acceder a todo
   if (role === "super_admin_global") return true;
-
-  // Rutas de super-admin — solo super_admin_global
   if (pathname.startsWith("/super-admin")) return false;
-
-  // Admin Sosercom
-  if (pathname.startsWith("/admin")) {
-    return role === "admin";
-  }
-
-  // Rutas del estudio
-  if (pathname.startsWith("/firm")) {
-    return isFirmRole(role);
-  }
-
-  // Portal del cliente final
-  if (pathname.startsWith("/cliente")) {
-    return isClientRole(role);
-  }
-
-  // Rutas legacy
-  if (pathname.startsWith("/dashboard")) {
-    return isClientRole(role) || isFirmRole(role);
-  }
-
+  if (pathname.startsWith("/admin")) return role === "admin";
+  if (pathname.startsWith("/firm")) return isFirmRole(role);
+  if (pathname.startsWith("/cliente")) return isClientRole(role);
+  if (pathname.startsWith("/dashboard")) return isClientRole(role) || isFirmRole(role);
   return true;
 }
-
-// ─── Lecturas de Firestore ────────────────────────────────────────────────────
 
 export type UserRole_Internal = UserRole;
 
@@ -153,51 +118,73 @@ function isValidStatus(value: unknown): value is UserStatus {
   return ["pending_validation", "active", "suspended"].includes(String(value));
 }
 
-function ensureString(value: any, fallback: string | null = null): string | null {
+function ensureString(value: unknown, fallback: string | null = null): string | null {
   if (typeof value === "string") return value;
-  if (value && typeof value === "object") {
-    // Si es un objeto de Firestore accidental (como un mapa vacío), devolvemos el fallback
-    return fallback;
-  }
-  return value || fallback;
+  if (value && typeof value === "object") return fallback;
+  return (value as string | null | undefined) || fallback;
 }
 
-async function getAppUser(
-  uid: string,
-  email: string | null,
-  displayName: string | null
-): Promise<AppUser | null> {
-  const userDoc = await getDoc(doc(db, "users", uid));
-  if (!userDoc.exists()) return null;
+async function getTenantAdjustedStatus(role: UserRole, tenantId: string | null, status: UserStatus) {
+  if (!tenantId || role === "super_admin_global" || role === "admin") return status;
+  const tenantDoc = await getDoc(doc(db, "tenants", tenantId)).catch(() => null);
+  const tenantStatus = tenantDoc?.exists() ? tenantDoc.data()?.status : null;
+  return tenantStatus === "suspended" ? "suspended" : status;
+}
 
-  const data = userDoc.data();
+async function buildAppUser(uid: string, data: Record<string, unknown>, email: string | null, displayName: string | null): Promise<AppUser | null> {
   const rawRole = data.role;
   const role = isValidRole(rawRole) ? (rawRole as UserRole) : null;
-  
-  if (!role) {
-    console.warn(`Usuario ${uid} tiene un rol inválido o ausente:`, rawRole);
-    return null;
-  }
+  if (!role) return null;
+
+  const tenantId = ensureString(data.tenantId);
+  const status = await getTenantAdjustedStatus(
+    role,
+    tenantId,
+    isValidStatus(data.status) ? (data.status as UserStatus) : "pending_validation",
+  );
 
   return {
     uid,
     email: ensureString(data.email, email),
     displayName: ensureString(data.displayName, displayName),
     role,
-    status: isValidStatus(data.status) ? (data.status as UserStatus) : "pending_validation",
-    tenantId: ensureString(data.tenantId),
+    status,
+    tenantId,
     companyId: ensureString(data.companyId),
     department: ensureString(data.department),
     planId: ensureString(data.planId),
-    subscriptionStatus: data.subscriptionStatus ?? null,
+    subscriptionStatus: (data.subscriptionStatus as SubscriptionStatus) ?? null,
     createdBy: ensureString(data.createdBy),
     validatedBy: ensureString(data.validatedBy),
-    powers: Array.isArray(data.powers) ? data.powers : [],
+    powers: Array.isArray(data.powers) ? (data.powers as string[]) : [],
     category: ensureString(data.category),
   };
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+async function getAppUser(uid: string, email: string | null, displayName: string | null): Promise<AppUser | null> {
+  const userDoc = await getDoc(doc(db, "users", uid));
+  if (!userDoc.exists()) return null;
+  return buildAppUser(uid, userDoc.data() as Record<string, unknown>, email, displayName);
+}
+
+async function getUserByUid(targetUid: string): Promise<AppUser | null> {
+  const targetSnap = await getDoc(doc(db, "users", targetUid));
+  if (!targetSnap.exists()) return null;
+  return buildAppUser(targetUid, targetSnap.data() as Record<string, unknown>, null, null);
+}
+
+function readStoredImpersonation(): StoredImpersonationSession | null {
+  if (typeof window === "undefined") return null;
+  const hasCookie = document.cookie.split(";").some((item) => item.trim().startsWith(`${IMPERSONATION_COOKIE_NAME}=`));
+  if (!hasCookie) return null;
+  const raw = window.localStorage.getItem(IMPERSONATION_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as StoredImpersonationSession;
+  } catch {
+    return null;
+  }
+}
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -223,17 +210,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
+
       try {
-        const appUser = await getAppUser(
-          firebaseUser.uid,
-          firebaseUser.email,
-          firebaseUser.displayName
-        );
-        setUser(appUser);
+        const appUser = await getAppUser(firebaseUser.uid, firebaseUser.email, firebaseUser.displayName);
         setRealUser(appUser);
 
         if (appUser) {
           setAuthCookies(appUser.role);
+          const stored = readStoredImpersonation();
+          if (appUser.role === "super_admin_global" && stored?.targetUserId) {
+            const targetUser = await getUserByUid(stored.targetUserId).catch(() => null);
+            setUser(targetUser || appUser);
+          } else {
+            setUser(appUser);
+          }
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -248,6 +240,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(IMPERSONATION_STORAGE_KEY);
+      }
       await signOut(auth);
       clearAuthCookies();
     } catch (error) {
@@ -259,36 +254,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (realUser?.role !== "super_admin_global") return;
     setLoading(true);
     try {
-      const targetSnap = await getDoc(doc(db, "users", targetUid));
-      if (targetSnap.exists()) {
-        const data = targetSnap.data();
-        const targetUser: AppUser = {
-          uid: targetUid,
-          email: ensureString(data.email),
-          displayName: ensureString(data.displayName),
-          role: isValidRole(data.role) ? (data.role as UserRole) : "staff",
-          status: isValidStatus(data.status) ? (data.status as UserStatus) : "active",
-          tenantId: ensureString(data.tenantId),
-          companyId: ensureString(data.companyId),
-          department: ensureString(data.department),
-          planId: ensureString(data.planId),
-          subscriptionStatus: data.subscriptionStatus ?? null,
-          powers: Array.isArray(data.powers) ? data.powers : [],
-          category: ensureString(data.category),
-        };
+      const targetUser = await getUserByUid(targetUid);
+      if (targetUser) {
         setUser(targetUser);
-        
-        // Actualizar cookies durante impersonación
         document.cookie = `portal360-role=${targetUser.role}; path=/; max-age=3600`;
       }
-    } catch (e) {
-      console.error("Error impersonating:", e);
+    } catch (error) {
+      console.error("Error impersonating:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const stopImpersonating = async () => {
+    const stored = readStoredImpersonation();
+    if (stored?.sessionId && auth.currentUser) {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        await fetch("/api/super-admin/impersonation", {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId: stored.sessionId }),
+        });
+      } catch (error) {
+        console.error("Error ending impersonation:", error);
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(IMPERSONATION_STORAGE_KEY);
+    }
+
     setUser(realUser);
     if (realUser) {
       document.cookie = `portal360-role=${realUser.role}; path=/; max-age=3600`;
@@ -311,11 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function resolveAppUserFromAuth(
-  uid: string,
-  email: string | null,
-  displayName: string | null
-) {
+export function resolveAppUserFromAuth(uid: string, email: string | null, displayName: string | null) {
   return getAppUser(uid, email, displayName);
 }
 

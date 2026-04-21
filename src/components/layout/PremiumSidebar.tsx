@@ -25,7 +25,8 @@ import {
   LifeBuoy,
   BarChart3,
   Shield,
-  CalendarDays
+  CalendarDays,
+  Headset
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -103,6 +104,7 @@ const superAdminSections: NavSection[] = [
     items: [
       { title: "Agenda Maestra", href: "/super-admin/agenda", icon: <CalendarDays className="w-5 h-5" /> },
       { title: "Dashboard Global", href: "/super-admin", icon: <Shield className="w-5 h-5 text-amber-500" /> },
+      { title: "Soporte", href: "/super-admin/soporte", icon: <Headset className="w-5 h-5" /> },
       { title: "Auditoría Sist.", href: "/super-admin/auditoria", icon: <ShieldAlert className="w-5 h-5" /> },
       { title: "Finanzas Global", href: "/super-admin/finanzas", icon: <CreditCard className="w-5 h-5" /> },
       { title: "Operación", href: "/super-admin/operacion", icon: <Settings className="w-5 h-5" /> },

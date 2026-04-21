@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, isImpersonating, realUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -28,7 +28,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       return;
     }
 
-    if (user.status !== "active") {
+    if (user.status !== "active" && !(isImpersonating && realUser?.role === "super_admin_global")) {
       return;
     }
 
@@ -40,7 +40,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!canAccessRoute(user.role, pathname)) {
       router.replace(getDefaultRouteForRole(user.role));
     }
-  }, [allowedRoles, loading, logout, pathname, router, user]);
+  }, [allowedRoles, isImpersonating, loading, logout, pathname, realUser?.role, router, user]);
 
   if (loading) {
     return (
@@ -54,7 +54,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return null;
   }
 
-  if (user.status !== "active") {
+  if (user.status !== "active" && !(isImpersonating && realUser?.role === "super_admin_global")) {
     return <ValidationGuard>{children}</ValidationGuard>;
   }
 

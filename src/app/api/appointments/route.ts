@@ -1,22 +1,9 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAppointment, listAppointments } from "@/features/appointments/server/appointments-repo";
-import { firestoreFetch, fromFirestoreFields, requireFirebaseUser } from "@/lib/firebase/rest-server";
+import { resolveRequestActor } from "@/lib/auth/server-actor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function getActor(req: NextRequest) {
-  const authUser = await requireFirebaseUser(req);
-  if (!authUser) return null;
-  const userDoc = await firestoreFetch(`users/${authUser.uid}`, authUser.token).catch(() => null);
-  const userData = userDoc?.fields ? fromFirestoreFields(userDoc.fields) : {};
-  return {
-    ...authUser,
-    role: String(userData.role || ""),
-    tenantId: typeof userData.tenantId === "string" ? userData.tenantId : null,
-    displayName: String(userData.displayName || userData.email || "Cliente"),
-  };
-}
 
 function isClientRole(role: string) {
   return role === "cliente_final" || role === "cliente";
@@ -24,7 +11,7 @@ function isClientRole(role: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const actor = await getActor(req);
+    const actor = await resolveRequestActor(req);
     if (!actor) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const data = await listAppointments({ actorId: actor.uid, actorRole: actor.role, actorTenantId: actor.tenantId, token: actor.token });
     return NextResponse.json({ ok: true, data });
@@ -36,7 +23,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await getActor(req);
+    const actor = await resolveRequestActor(req);
     if (!actor) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     if (!isClientRole(actor.role)) return NextResponse.json({ error: "Solo clientes pueden crear citas desde este flujo" }, { status: 403 });
 
@@ -49,7 +36,7 @@ export async function POST(req: NextRequest) {
     const appointment = await createAppointment({
       lawyerId: String(body.lawyerId),
       clientId: actor.uid,
-      clientName: actor.displayName,
+      clientName: actor.displayName || actor.email || "Cliente",
       caseId: body.caseId ? String(body.caseId) : null,
       title: body.title ? String(body.title) : undefined,
       description: body.description ? String(body.description) : undefined,
